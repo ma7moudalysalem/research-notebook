@@ -1,0 +1,32 @@
+#!/bin/sh
+# Conventional Commits plus a required DCO sign-off.
+#
+# DCO rather than a CLA (RD25): the prose here is CC BY, which makes the
+# provenance of contributed text something the maintainer inherits, and the DCO
+# is the lightest mechanism that addresses it. A CLA bot would deter a two-line
+# typo fix and signal a corporate posture that does not fit a student notebook.
+set -e
+MSG="$1"
+SUBJECT=$(head -n 1 "$MSG")
+
+case "$SUBJECT" in
+  "Merge "*|"Revert "*|"fixup! "*|"squash! "*|"amend! "*) exit 0 ;;
+esac
+
+TYPES='feat|fix|docs|refactor|test|chore|ci|build|perf|style|revert|summary|repro|tutorial|reading'
+if ! printf '%s' "$SUBJECT" | grep -Eq "^($TYPES)(\([A-Za-z0-9._/-]+\))?!?: .+"; then
+  printf '\n  Commit message rejected.\n\n    got:  %s\n    want: type(optional-scope): subject\n\n  Types: %s\n\n' \
+    "$SUBJECT" "$TYPES" >&2
+  exit 1
+fi
+
+if [ "${#SUBJECT}" -gt 72 ]; then
+  printf '\n  Subject is %s characters; the ceiling is 72.\n\n' "${#SUBJECT}" >&2
+  exit 1
+fi
+
+if ! grep -qE '^Signed-off-by: .+ <.+@.+>' "$MSG"; then
+  printf '\n  Missing DCO sign-off.\n\n  Commit with -s:  git commit -s\n\n  By signing off you certify the Developer Certificate of Origin\n  (https://developercertificate.org/). See COPYRIGHT.md#contributions.\n\n' >&2
+  exit 1
+fi
+exit 0

@@ -1,0 +1,18 @@
+The written material in this directory is licensed under the Creative Commons
+Attribution 4.0 International License (CC BY 4.0).
+
+Full text: ../LICENSES/CC-BY-4.0.txt
+Canonical: https://creativecommons.org/licenses/by/4.0/
+
+SPDX-License-Identifier: CC-BY-4.0
+
+This marker is repeated at directory level because GitHub's licence detector
+reads only the repository root LICENSE, which is MIT for the code. Without this
+file, every summary here would be presented as MIT-licensed software, which is
+both wrong and legible as wrong to the people most likely to read it.
+
+The authoritative path-to-licence map is ../COPYRIGHT.md.
+
+Note what this does NOT license: the papers being summarised. Each summary is
+my own description of someone else's work, and copyright in that work remains
+with its authors and publisher.

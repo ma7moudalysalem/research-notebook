@@ -1,0 +1,64 @@
+# ---------------------------------------------------------------------------
+# research-notebook — ignore rules
+#
+# Belt and braces. Everything that must never reach this repository is already
+# refused by tools/promote.py and by .githooks/pre-commit; these lines are the
+# third independent layer (RD02), and the one that catches a file added by
+# hand rather than through the promotion path.
+# ---------------------------------------------------------------------------
+
+# ---- TEMPORARY: remove at CI activation -----------------------------------
+# The gh token has no `workflow` scope, so a push touching this path is
+# rejected. Workflows are staged under .github/workflows-staged/.
+# See .github/workflows-staged/README.md. DELETE THIS LINE AT ACTIVATION.
+/.github/workflows/
+
+# ---- the copyright boundary ------------------------------------------------
+# No third-party PDF, ever. The single negation admits figures I generated
+# myself, which are the only PDFs that belong here.
+*.pdf
+!/assets/figures/**/*.pdf
+
+# ---- private material that must never cross ---------------------------------
+**/private/
+*-draft.md
+*.local.md
+.leakwords
+rw.local.json
+
+# ---- datasets and weights ---------------------------------------------------
+*.pt
+*.pth
+*.ckpt
+*.safetensors
+*.onnx
+*.npz
+*.parquet
+*.dcm
+*.nii
+*.nii.gz
+data/
+runs/
+checkpoints/
+wandb/
+
+# ---- Python -----------------------------------------------------------------
+.venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# ---- site build -------------------------------------------------------------
+site/
+.cache/
+.lycheecache
+
+# ---- OS and editor ----------------------------------------------------------
+Thumbs.db
+desktop.ini
+.DS_Store
+*.swp
+.vscode/
+.idea/

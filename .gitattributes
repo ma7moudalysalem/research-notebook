@@ -1,0 +1,36 @@
+# ---------------------------------------------------------------------------
+# research-notebook — attributes
+# LF everywhere, mirroring the private repository so a promoted file's checksum
+# is identical on both sides and in CI.
+# ---------------------------------------------------------------------------
+
+* text=auto eol=lf
+
+.githooks/**    text eol=lf
+
+*.md            text eol=lf
+*.py            text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.json          text eol=lf
+*.bib           text eol=lf
+*.svg           text eol=lf
+*.cff           text eol=lf
+
+*.png           binary
+*.jpg           binary
+*.jpeg          binary
+*.gif           binary
+*.pdf           binary
+
+# ---- linguist -------------------------------------------------------------
+# Without these a repository that is 95% prose is presented as a Jupyter
+# Notebook project, because notebooks weigh more than markdown. The language
+# bar is the second thing a visitor looks at.
+summaries/**    linguist-documentation
+reading-lists/** linguist-documentation
+curricula/**    linguist-documentation
+docs/**         linguist-documentation
+tutorials/**    linguist-documentation
+datasets/**     linguist-documentation
+*.ipynb         linguist-detectable=false

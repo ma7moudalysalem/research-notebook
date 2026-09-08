@@ -1,0 +1,37 @@
+cff-version: 1.2.0
+message: >-
+  If you use these summaries, reproductions or tools, please cite the
+  repository. If you are citing a paper I summarised, cite the paper — the
+  summary is my reading of it, not a source for its claims.
+title: "research-notebook"
+abstract: >-
+  A public research notebook: paper summaries written in my own words,
+  reproductions of published results, reading lists and small tools, across
+  medical imaging, computer vision, foundation models, multimodal AI, AI
+  systems and machine-learning theory.
+type: software
+authors:
+  - given-names: Mahmoud
+    family-names: Salem
+    email: ma7moudalysalem+research@gmail.com
+    # ORCID: DELIBERATELY ABSENT until a real one exists.
+    #
+    # Registering takes about four minutes at https://orcid.org/register, and it
+    # is the identifier that survives changing institution, so it is worth doing
+    # this week. But a placeholder ORCID in a citation file is a false claim in
+    # the one file whose entire purpose is being trusted by a citation manager,
+    # and a fabricated identifier is worse than a missing one.
+    #
+    # When you have it, uncomment and paste it:
+    # orcid: "https://orcid.org/XXXX-XXXX-XXXX-XXXX"
+repository-code: "https://github.com/ma7moudalysalem/research-notebook"
+url: "https://github.com/ma7moudalysalem/research-notebook"
+license: MIT
+license-url: "https://github.com/ma7moudalysalem/research-notebook/blob/main/COPYRIGHT.md"
+keywords:
+  - machine learning
+  - medical imaging
+  - computer vision
+  - foundation models
+  - reproducibility
+  - literature review
