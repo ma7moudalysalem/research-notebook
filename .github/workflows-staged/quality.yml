@@ -1,0 +1,78 @@
+# Public runners are UNMETERED, so unlike the private repository this fans out.
+# Parallel jobs finish sooner and each failure names itself in the checks list,
+# which matters more here because someone else may be reading it.
+name: quality
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: '**/*.md'
+
+  spell:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # HARD fail here. In the private repo notes are drafts and this only
+      # warns; here the writing IS the deliverable.
+      - uses: streetsidesoftware/cspell-action@v6
+        with:
+          config: cspell.config.yaml
+          inline: error
+          strict: true
+
+  links:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: .lycheecache
+          key: lychee-${{ github.sha }}
+          restore-keys: lychee-
+      - uses: lycheeverse/lychee-action@v2
+        with:
+          args: --config lychee.toml --no-progress './**/*.md'
+          fail: true
+
+  cff:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The citation button is the highest value-per-byte thing in this repo
+      # for a PhD applicant. A malformed CITATION.cff silently disables it.
+      - uses: citation-file-format/cffconvert-github-action@2.0.0
+        with:
+          args: "--validate"
+
+  tools-parity:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.13' }
+      - name: The mirrored toolbox has not forked
+        run: |
+          if [ -f tools/sync_public_tools.py ]; then
+            pip install PyYAML jsonschema
+            python tools/sync_public_tools.py --check
+          else
+            echo "toolbox mirror not yet published; nothing to check"
+          fi

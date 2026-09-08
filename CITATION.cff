@@ -13,7 +13,7 @@ type: software
 authors:
   - given-names: Mahmoud
     family-names: Salem
-    email: ma7moudalysalem+research@gmail.com
+    email: ma7moudalysalem@gmail.com
     # ORCID: DELIBERATELY ABSENT until a real one exists.
     #
     # Registering takes about four minutes at https://orcid.org/register, and it

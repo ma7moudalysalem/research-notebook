@@ -1,0 +1,14 @@
+# Here this file EARNS its keep, unlike its twin in the private repository.
+#
+# This repo is public, so a ruleset on `main` is available on the free plan and
+# code-owner review is actually enforced: an outside contributor touching any
+# path below auto-requests my review before the PR can merge.
+*                       @ma7moudalysalem
+
+# The paths where an outside change is most likely to be well-meant and wrong.
+/COPYRIGHT.md           @ma7moudalysalem
+/LICENSE                @ma7moudalysalem
+/LICENSES/              @ma7moudalysalem
+/summaries/LICENSE      @ma7moudalysalem
+/.github/               @ma7moudalysalem
+/tools/                 @ma7moudalysalem

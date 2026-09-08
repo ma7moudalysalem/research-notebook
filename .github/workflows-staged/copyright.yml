@@ -1,0 +1,64 @@
+# A REQUIRED status check in the main ruleset, and never skippable.
+#
+# This is layer three of three (RD02): .gitignore, the pre-commit hook, then
+# this. The hook can be bypassed with --no-verify and does not run in GitHub's
+# web editor at all; this runs regardless of how the commit was made.
+name: copyright
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: No third-party PDF
+        run: |
+          found=$(git ls-files '*.pdf' | grep -v '^assets/figures/' || true)
+          if [ -n "$found" ]; then
+            echo "::error title=Third-party PDF::$found"
+            exit 1
+          fi
+
+      - name: Every figure declares its provenance
+        run: |
+          fail=0
+          for f in $(git ls-files 'assets/figures/*' | grep -viE '\.source\.ya?ml$' || true); do
+            src="${f%.*}.source.yml"
+            if [ ! -f "$src" ]; then
+              echo "::error file=$f,title=No provenance::$f has no $src (COPYRIGHT.md#figures)"
+              fail=1
+            fi
+          done
+          exit $fail
+
+      - name: Every summary attributes its source
+        run: |
+          fail=0
+          for f in $(git ls-files 'summaries/*.md' || true); do
+            grep -q '^## Source and attribution' "$f" || {
+              echo "::error file=$f,title=No attribution::missing '## Source and attribution'"
+              fail=1
+            }
+          done
+          exit $fail
+
+      - name: No notebook outputs
+        run: |
+          fail=0
+          for f in $(git ls-files '*.ipynb' || true); do
+            if grep -qE '"(output_type|image/png|image/jpeg)"' "$f"; then
+              echo "::error file=$f,title=Notebook outputs::a rendered cell is the likeliest figure or path leak"
+              fail=1
+            fi
+          done
+          exit $fail

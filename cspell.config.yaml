@@ -1,0 +1,54 @@
+# ---------------------------------------------------------------------------
+# cspell — YAML rather than JSON on purpose.
+#
+# cspell tolerates comments in .cspell.json, but the pre-commit `check-json`
+# hook does not, and excluding this file from JSON validation just to keep the
+# comments would mean a real syntax error goes unnoticed. YAML gives us both.
+#
+# Single-quoted scalars throughout: YAML does not process escapes inside them,
+# so a regex can be written exactly as a regex.
+#
+# HARD-FAILS in this repo, unlike its twin in research-workspace, where notes
+# are drafts and a spell check that blocks a 23:40 capture is a note that never
+# gets written. Here the writing IS the deliverable and a typo in a public
+# summary is read as carelessness about the work behind it.
+#
+# SYNCED FILE: keep the dictionaries and ignore rules identical to the private
+# repository, or a note that validates before promotion fails after it. Only
+# the banner above and the strictness in CI differ. Parity is asserted by
+# tools/sync_public_tools.py --check.
+# ---------------------------------------------------------------------------
+version: '0.2'
+language: en
+
+dictionaries:
+  - en_US
+  - softwareTerms
+  - python
+  - latex
+  - project-words
+
+dictionaryDefinitions:
+  - name: project-words
+    path: .cspell/project-words.txt
+    addWords: true
+
+ignorePaths:
+  - .git/**
+  - .venv/**
+  - node_modules/**
+  - '**/*.bib'
+  - '**/*.lock'
+  - .cspell/**
+  - papers/pdf/**
+  - writing/thesis/build/**
+  - '**/*.svg'
+
+ignoreRegExpList:
+  - '/\[\[[^\]]+\]\]/'            # wikilink targets are filenames, not prose
+  - '/`[^`]+`/'                   # inline code
+  - '/```[\s\S]*?```/'            # fenced code
+  - '/https?:\/\/\S+/'            # URLs
+  - '/\b[a-z]+\d{4}[a-z0-9]+\b/'  # citekeys
+
+useGitignore: true

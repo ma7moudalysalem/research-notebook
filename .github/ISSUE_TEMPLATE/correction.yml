@@ -1,0 +1,44 @@
+name: This summary is wrong
+description: A factual error in a summary, note or reading list
+title: "correction: "
+labels: ["type/correction"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        This is the most useful issue this repository can receive, and it is
+        genuinely welcome. Every summary here is one person's reading, written
+        to be revised.
+
+  - type: input
+    id: file
+    attributes:
+      label: Which file
+      placeholder: summaries/03-foundation-models/vaswani2017attention.md
+    validations:
+      required: true
+
+  - type: textarea
+    id: wrong
+    attributes:
+      label: What is wrong
+      description: Quote the sentence if you can.
+    validations:
+      required: true
+
+  - type: textarea
+    id: right
+    attributes:
+      label: What is correct, and how you know
+      description: >
+        A section number, a figure, or a link is enough. I would rather fix it
+        properly than quickly.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: author
+    attributes:
+      label: Optional
+      options:
+        - label: I am an author of the paper being summarised

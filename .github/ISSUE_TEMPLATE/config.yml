@@ -1,0 +1,13 @@
+# Blank issues DISABLED here, the opposite of the private repository.
+#
+# A stranger's unstructured issue costs a round trip to understand, and there
+# is exactly one person to pay it. In the private repo capture cost wins; here,
+# clarity does.
+blank_issues_enabled: false
+contact_links:
+  - name: Copyright concern
+    url: https://github.com/ma7moudalysalem/research-notebook/blob/main/COPYRIGHT.md#reporting-a-copyright-concern
+    about: Email, not a public issue. Faster, and it does not put your complaint in a search index.
+  - name: Security or a leaked credential
+    url: https://github.com/ma7moudalysalem/research-notebook/security/advisories/new
+    about: Private vulnerability reporting.

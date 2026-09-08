@@ -1,0 +1,34 @@
+{
+  // Shared with the public repo; parity is asserted in CI so a note that
+  // validates privately cannot fail after promotion.
+  "config": {
+    "default": true,
+
+    // MD013 line-length: OFF. Hard-wrapping fights Obsidian's editor and makes
+    // every prose edit a multi-line diff. Readability is the editor's job.
+    "MD013": false,
+
+    // MD024 duplicate headings: siblings only. Every paper note has "## Method"
+    // and "## Results"; that is the template working, not an error.
+    "MD024": { "siblings_only": true },
+
+    // MD033 inline HTML: allowed for the AUTO markers and detail blocks.
+    "MD033": { "allowed_elements": ["details", "summary", "br", "sub", "sup", "kbd", "img"] },
+
+    // MD041 first line must be a top-level heading: ON. Frontmatter is skipped.
+    "MD041": true,
+
+    // MD029 ordered list numbering: one style, so diffs stay small.
+    "MD029": { "style": "ordered" },
+
+    // MD046 code block style: fenced everywhere.
+    "MD046": { "style": "fenced" }
+  },
+  "globs": ["**/*.md"],
+  "ignores": [
+    "**/node_modules/**",
+    ".venv/**",
+    "writing/thesis/**",       // LaTeX-adjacent scratch prose
+    "**/AUTO-*.md"
+  ]
+}

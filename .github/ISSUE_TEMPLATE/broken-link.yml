@@ -1,0 +1,28 @@
+name: Broken or hijacked link
+description: A URL that is dead, or whose domain now serves something else
+title: "link: "
+labels: ["type/tooling"]
+body:
+  - type: input
+    id: where
+    attributes:
+      label: Which file and which link
+    validations:
+      required: true
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What happened to it
+      options:
+        - Dead (404 or the host is gone)
+        - Redirects somewhere unrelated
+        - Domain changed hands and now serves other content
+        - Paywalled where it used to be open
+    validations:
+      required: true
+  - type: markdown
+    attributes:
+      value: |
+        A **hijacked** link is the serious case: a reading list is exactly the
+        kind of page people follow links from without thinking. Those are
+        better reported privately — see SECURITY.md.

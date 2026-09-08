@@ -1,0 +1,40 @@
+# ---------------------------------------------------------------------------
+# lychee — link checking, in two tiers.
+#
+# Tier 1 (checked): hosts that answer a HEAD request honestly.
+# Tier 2 (excluded): academic publishers. ieeexplore, springer, sciencedirect,
+#   acm and wiley all serve 403s to bots, and doi.org rate-limits. Checking them
+#   produces a red X for someone else's CDN, which is the fastest way to teach
+#   yourself to ignore CI. DOIs are validated STRUCTURALLY instead, by regex, in
+#   tools/rwlib/bib.py.
+# ---------------------------------------------------------------------------
+cache = true
+max_cache_age = "14d"
+max_redirects = 5
+max_retries = 2
+timeout = 20
+accept = ["200", "203", "206", "429"]
+user_agent = "Mozilla/5.0 (compatible; lychee link checker)"
+no_progress = true
+
+exclude = [
+  '^https?://(www\.)?ieeexplore\.ieee\.org',
+  '^https?://(www\.)?link\.springer\.com',
+  '^https?://(www\.)?sciencedirect\.com',
+  '^https?://(www\.)?dl\.acm\.org',
+  '^https?://(www\.)?onlinelibrary\.wiley\.com',
+  '^https?://(dx\.)?doi\.org',
+  '^https?://(www\.)?jstor\.org',
+  '^https?://(www\.)?nature\.com',
+  '^https?://localhost',
+  '^https?://127\.0\.0\.1',
+  '^file://',
+]
+
+# Obsidian [[wikilinks]] are not URLs and lychee cannot resolve them.
+# tools/check_links.py owns that, with Obsidian's shortest-unique-path semantics.
+exclude_path = [
+  ".venv",
+  "node_modules",
+  "writing/thesis/build",
+]

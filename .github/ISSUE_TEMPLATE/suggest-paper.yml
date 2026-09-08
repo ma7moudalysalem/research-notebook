@@ -1,0 +1,44 @@
+name: Suggest a paper
+description: Something worth adding to a reading list
+title: "suggest: "
+labels: ["type/suggestion"]
+body:
+  - type: input
+    id: paper
+    attributes:
+      label: Paper
+      description: Title, plus an arXiv id or DOI.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it belongs on this list
+      description: >
+        What it changes about the picture the list currently paints. "It is
+        highly cited" is not a reason; "it contradicts the third entry" is.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: disclosure
+    attributes:
+      label: Disclosure
+      description: >
+        Asked openly rather than guessed at. Self-suggestion is fine and common;
+        an undisclosed one, once noticed, colours everything else.
+      options:
+        - I have no connection to this paper
+        - I am an author
+        - I am a co-author's colleague or student
+        - Other connection, described below
+    validations:
+      required: true
+
+  - type: markdown
+    attributes:
+      value: |
+        **Please do not attach a PDF.** No third-party PDF enters this
+        repository under any circumstances (see COPYRIGHT.md). A link is what
+        is wanted.
