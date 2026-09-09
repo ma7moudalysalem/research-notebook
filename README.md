@@ -13,26 +13,34 @@ publications, no abstracts. Details in [COPYRIGHT.md](COPYRIGHT.md).
 
 Three things, chosen because choosing them is part of the point.
 
-1. **[CLIP — Learning Transferable Visual Models From Natural Language
-   Supervision](summaries/04-multimodal/radford2021clip.md)** — what the zero-shot
+1. **[CLIP](summaries/04-multimodal/radford2021clip.md)** — what the zero-shot
    claim does and does not say, and why the four-shot crossover is the
    interesting number rather than the ImageNet headline.
-2. *(a reproduction — first one lands here once it has passed its licence check)*
-3. *(a reading list — foundation models, staged, with what I left out and why)*
+2. **[Attention Is All You Need](summaries/03-foundation-models/vaswani2017attention.md)**
+   — the architecture everything since is a variation on, read for the design
+   decisions rather than the diagram.
+3. **[Vision Transformer](summaries/02-computer-vision/dosovitskiy2021vit.md)** —
+   why inductive bias is a data-efficiency prior you can outgrow, and why the
+   central claim rests on a corpus nobody outside can check.
 
 ---
 
 ## What is in here
 
-| | |
-|---|---|
-| [`summaries/`](summaries/) | One file per paper I have read properly. Own words, with a source-and-attribution block. |
-| [`reproductions/`](reproductions/) | Papers I ran myself, with a fidelity scorecard: what matched, what did not, and what the paper omitted. |
-| [`reading-lists/`](reading-lists/) | Staged paths through a topic, with a reason per entry and a "what I left out" section. |
-| [`curricula/`](curricula/) | Learning tracks, including what I actually did rather than only what I planned. |
-| [`datasets/`](datasets/) | Dataset cards: licence, access tier, and what may lawfully be published from work using them. |
-| [`docs/`](docs/) | How this repository works, and what is deliberately not in it. |
-| [`tools/`](tools/) | The toolbox that generates the indexes and enforces the rules. |
+| | | |
+|---|---|---|
+| [`summaries/`](summaries/) | One file per paper I have read properly. Own words, with a source-and-attribution block. | live |
+| [`docs/`](docs/) | How this repository works, and what is deliberately not in it. | live |
+| `reproductions/` | Papers I ran myself, with a fidelity scorecard: what matched, what did not, and what the paper omitted. | not yet |
+| `reading-lists/` | Staged paths through a topic, with a reason per entry and a "what I left out" section. | not yet |
+| `curricula/` | Learning tracks, including what I actually did rather than only what I planned. | not yet |
+| `datasets/` | Dataset cards: licence, access tier, and what may lawfully be published from work using them. | not yet |
+| `tools/` | The toolbox that generates the indexes and enforces the rules. | not yet |
+
+The rows marked *not yet* have no directory behind them. That is the rule rather
+than an omission: **a directory is created when it holds its first real file**,
+so nothing here is an empty folder promising something. Unlinked means it does
+not exist; when it does, it will be a link.
 
 Tracks: medical imaging · computer vision · foundation models · multimodal ·
 AI systems · ML theory. Six, held at equal depth on purpose — the thesis topic
