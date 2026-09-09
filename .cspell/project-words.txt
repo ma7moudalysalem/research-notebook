@@ -20,3 +20,57 @@ preprint
 preprints
 reproducibility
 reproducibilities
+
+# --- machine learning ---
+autoregression
+convolutional
+coreference
+ensembling
+exponentiated
+hyperparameters
+initialisation
+interpretability
+logits
+modernisations
+multimodal
+parameterisation
+parameterised
+pretrain
+pretrained
+pretraining
+regularisation
+reimplementation
+reimplementations
+softmax
+sublayer
+sublayers
+tokeniser
+asymptotics
+micrometastasis
+# --- datasets and benchmarks named in summaries ---
+Camelyon
+GTSRB
+KITTI
+LAION
+MNIST
+Treebank
+newstest
+GNMT
+LSTM
+VIRT
+# --- people and venues cited in prose rather than in frontmatter ---
+Keshav
+SIGCOMM
+Anson
+Zhang
+Biomed
+# --- this repository's own vocabulary ---
+ckpt
+ipynb
+leakwords
+lycheecache
+lycheeverse
+wikilinked
+Irreproducibility
+fundable
+paediatric

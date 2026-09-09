@@ -19,19 +19,25 @@
 # tools/sync_public_tools.py --check.
 # ---------------------------------------------------------------------------
 version: '0.2'
-language: en
+language: en,en-GB
 
 dictionaries:
+  # British spelling is selected by `language: en,en-GB` above, not here.
+  # Listing en_GB as a dictionary name silently does nothing.
   - en_US
   - softwareTerms
   - python
   - latex
   - project-words
+  - people
 
 dictionaryDefinitions:
   - name: project-words
     path: .cspell/project-words.txt
     addWords: true
+  - name: people
+    path: .cspell/people.txt
+    addWords: false
 
 ignorePaths:
   - .git/**

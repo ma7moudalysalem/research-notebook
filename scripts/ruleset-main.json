@@ -3,11 +3,20 @@
   "target": "branch",
   "enforcement": "active",
   "conditions": {
-    "ref_name": { "include": ["~DEFAULT_BRANCH"], "exclude": [] }
+    "ref_name": {
+      "include": [
+        "~DEFAULT_BRANCH"
+      ],
+      "exclude": []
+    }
   },
   "rules": [
-    { "type": "deletion" },
-    { "type": "non_fast_forward" },
+    {
+      "type": "deletion"
+    },
+    {
+      "type": "non_fast_forward"
+    },
     {
       "type": "pull_request",
       "parameters": {
@@ -16,10 +25,48 @@
         "require_code_owner_review": false,
         "require_last_push_approval": false,
         "required_review_thread_resolution": true,
-        "allowed_merge_methods": ["squash", "merge"]
+        "allowed_merge_methods": [
+          "squash",
+          "rebase"
+        ]
       }
     },
-    { "type": "required_linear_history" }
+    {
+      "type": "required_linear_history"
+    },
+    {
+      "type": "required_status_checks",
+      "parameters": {
+        "strict_required_status_checks_policy": true,
+        "do_not_enforce_on_create": false,
+        "required_status_checks": [
+          {
+            "context": "guard",
+            "integration_id": 15368
+          },
+          {
+            "context": "lint",
+            "integration_id": 15368
+          },
+          {
+            "context": "spell",
+            "integration_id": 15368
+          },
+          {
+            "context": "links",
+            "integration_id": 15368
+          },
+          {
+            "context": "cff",
+            "integration_id": 15368
+          },
+          {
+            "context": "tools-parity",
+            "integration_id": 15368
+          }
+        ]
+      }
+    }
   ],
   "bypass_actors": []
 }

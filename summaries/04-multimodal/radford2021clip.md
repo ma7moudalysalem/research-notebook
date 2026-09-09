@@ -122,11 +122,11 @@ and this is the single most consequential fact in the paper.
 modernisations plus attention pooling in place of global average pooling
 (RN50, RN101, and RN50x4/x16/x64 scaled EfficientNet-style in width, depth and
 resolution together), and Vision Transformers (ViT-B/32, ViT-B/16, ViT-L/14),
-i.e. dosovitskiy2021vit as-is. ViT-L/14 was additionally fine-tuned for one
+i.e. [dosovitskiy2021vit](../02-computer-vision/dosovitskiy2021vit.md) as-is. ViT-L/14 was additionally fine-tuned for one
 epoch at 336px, and that `ViT-L/14@336px` model produces the headline numbers.
 
 **Text encoder.** A 12-layer, 512-wide, 8-head causal Transformer, about 63M
-parameters — vaswani2017attention's decoder stack with the cross-attention
+parameters — [vaswani2017attention](../03-foundation-models/vaswani2017attention.md)'s decoder stack with the cross-attention
 removed. Lower-cased BPE, 49,152-token vocabulary, sequences capped at 76 tokens
 between `[SOS]` and `[EOS]`. The representation is the activation at `[EOS]` in
 the top layer, layer-normalised and linearly projected.
@@ -429,4 +429,4 @@ Only relevant if I run the transfer experiments above, which I intend to.
 
 The summary above is my own words, written from reading the paper. It is not the authors' abstract, it is not a translation of one, and no figure, table or passage of the original is reproduced here. Credit for the work belongs to the authors listed above; go and read them.
 
-Citekey `radford2021clip`. Prose in this directory is CC BY 4.0; see `LICENSE` beside this file.
+Citekey `radford2021clip`. Prose here is CC BY 4.0 — see [`summaries/LICENSE`](../LICENSE), and [`COPYRIGHT.md`](../../COPYRIGHT.md) for the authoritative path-to-licence map.

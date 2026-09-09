@@ -18,8 +18,21 @@
     // MD041 first line must be a top-level heading: ON. Frontmatter is skipped.
     "MD041": true,
 
+    // MD025 counts the frontmatter `title:` as a heading by default, so every
+    // note in this repository reads as having two H1s: the property Obsidian
+    // shows, and the `# Title` GitHub renders. Both are wanted. Setting
+    // front_matter_title to empty disables the frontmatter half of the check
+    // and leaves the real one - two `#` headings in one document - enforced.
+    "MD025": { "front_matter_title": "" },
+
     // MD029 ordered list numbering: one style, so diffs stay small.
     "MD029": { "style": "ordered" },
+
+    // MD060 table column alignment: OFF. It is not in the version CI pins, and
+    // enabling it reports 453 findings about pipe padding - cosmetic, uniform,
+    // and exactly the volume that buries a real finding when someone later
+    // bumps the action.
+    "MD060": false,
 
     // MD046 code block style: fenced everywhere.
     "MD046": { "style": "fenced" }
@@ -29,6 +42,9 @@
     "**/node_modules/**",
     ".venv/**",
     "writing/thesis/**",       // LaTeX-adjacent scratch prose
-    "**/AUTO-*.md"
+    "**/AUTO-*.md",
+    // Issue and PR templates open with an HTML comment on purpose: the comment
+    // is instruction to the person filling the form and must not render.
+    ".github/**"
   ]
 }

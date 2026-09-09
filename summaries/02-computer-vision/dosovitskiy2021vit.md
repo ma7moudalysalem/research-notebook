@@ -109,7 +109,7 @@ embeddings recover a 2D-looking similarity structure anyway.
 
 Then a standard pre-norm transformer encoder, repeated `L` times:
 
-```
+```text
 z = z + MHSA(LayerNorm(z))
 z = z + MLP(LayerNorm(z))         # one GELU hidden layer, width 4D
 ```
@@ -397,4 +397,4 @@ is the one I would write first, because it applies to half my reading queue.
 
 The summary above is my own words, written from reading the paper. It is not the authors' abstract, it is not a translation of one, and no figure, table or passage of the original is reproduced here. Credit for the work belongs to the authors listed above; go and read them.
 
-Citekey `dosovitskiy2021vit`. Prose in this directory is CC BY 4.0; see `LICENSE` beside this file.
+Citekey `dosovitskiy2021vit`. Prose here is CC BY 4.0 — see [`summaries/LICENSE`](../LICENSE), and [`COPYRIGHT.md`](../../COPYRIGHT.md) for the authoritative path-to-licence map.

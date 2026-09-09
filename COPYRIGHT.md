@@ -134,7 +134,7 @@ signal a corporate posture that does not fit a student's notebook.
 
 If something here reproduces your work beyond what you consider acceptable —
 whether or not you believe it is unlawful — email
-**ma7moudalysalem@gmail.com** with the file path and what you would like
+[ma7moudalysalem@gmail.com](mailto:ma7moudalysalem@gmail.com) with the file path and what you would like
 changed.
 
 I will acknowledge within **7 days** and, where the concern is about a figure,

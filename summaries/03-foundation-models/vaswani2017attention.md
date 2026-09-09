@@ -55,7 +55,7 @@ almost everything I will build on descends from this block.
 ## Why I am reading this
 
 Because it is upstream of every model I will actually use. ViT
-(dosovitskiy2021vit) is this encoder with image patches as tokens, CLIP
+([dosovitskiy2021vit](../02-computer-vision/dosovitskiy2021vit.md)) is this encoder with image patches as tokens, CLIP
 ([radford2021clip](../04-multimodal/radford2021clip.md)) uses it as the text tower, and every medical
 vision-language model I have seen is a re-parameterisation of one of those. I
 was absorbing the mechanism second-hand from later papers, which is how you end
@@ -310,7 +310,7 @@ run a WMT experiment, and I will encounter this architecture entirely through
 its descendants. Rated 4 rather than 5 for that reason: the paper's value to the
 field is unarguable, but the parts I will *re-read* are the ablation table and
 the training recipe, and everything else I will consume through
-dosovitskiy2021vit and [radford2021clip](../04-multimodal/radford2021clip.md).
+[dosovitskiy2021vit](../02-computer-vision/dosovitskiy2021vit.md) and [radford2021clip](../04-multimodal/radford2021clip.md).
 
 What it changes about what I do next, concretely:
 
@@ -322,9 +322,10 @@ What it changes about what I do next, concretely:
   in 3D. The `n²` in the complexity table is the number that decides whether a
   volumetric idea is fundable on the compute I have.
 - Cite the NeurIPS 2017 version, and note that the proceedings were called NIPS
-  that year. `config/taxonomy.yml` carries `renamed_from` for exactly this, so
-  writing `venue: NeurIPS` here still renders `NIPS` in the generated
-  bibliography (RD06).
+  that year. The workspace's venue table carries a rename-year for exactly this,
+  so writing `venue: NeurIPS` here still renders `NIPS` in the generated
+  bibliography (RD06) — an entry saying "NeurIPS 2017" is wrong and an examiner
+  will notice.
 
 ## Concept notes extracted
 
@@ -362,4 +363,4 @@ What it changes about what I do next, concretely:
 
 The summary above is my own words, written from reading the paper. It is not the authors' abstract, it is not a translation of one, and no figure, table or passage of the original is reproduced here. Credit for the work belongs to the authors listed above; go and read them.
 
-Citekey `vaswani2017attention`. Prose in this directory is CC BY 4.0; see `LICENSE` beside this file.
+Citekey `vaswani2017attention`. Prose here is CC BY 4.0 — see [`summaries/LICENSE`](../LICENSE), and [`COPYRIGHT.md`](../../COPYRIGHT.md) for the authoritative path-to-licence map.

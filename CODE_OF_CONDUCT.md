@@ -35,7 +35,7 @@ Not acceptable:
 
 ## Enforcement
 
-Report to **ma7moudalysalem@gmail.com**. Reports are handled privately
+Report to [ma7moudalysalem@gmail.com](mailto:ma7moudalysalem@gmail.com). Reports are handled privately
 and the reporter's identity is not disclosed.
 
 I will acknowledge within 7 days. Responses range from a private correction to
