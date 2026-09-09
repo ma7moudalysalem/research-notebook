@@ -18,7 +18,7 @@ year: 2021
 venue: ICML
 venue_type: conference
 arxiv: '2103.00020'
-url: https://arxiv.org/abs/2103.00020v1
+url: https://arxiv.org/abs/2103.00020
 tracks:
   - T04
 tags:
@@ -291,7 +291,7 @@ Not admitted, or under-weighted:
 
 ## Reproducibility
 
-- **Code available:** partially — `github.com/openai/CLIP` publishes model
+- **Code available:** partially — [openai/CLIP](https://github.com/openai/CLIP) publishes model
   definitions, the tokeniser and inference code. **Training code was not
   released.** OpenCLIP (LAION) is the community reimplementation and is what I
   would actually use.
