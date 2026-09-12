@@ -79,6 +79,7 @@ Gimelshein
 IDSIA
 Milakov
 # --- this repository's own vocabulary ---
+cffconvert
 ckpt
 ipynb
 leakwords
