@@ -122,7 +122,7 @@ person reading the rendered diff before the pull request is opened, which is
 why promotion is a deliberate weekly act and not a background job. If a summary
 here is closer to its source than it should be, the guard did not fail; a
 reader did, and the
-[correction template](../.github/ISSUE_TEMPLATE/correction.yml) is the remedy.
+[correction template](https://github.com/ma7moudalysalem/research-notebook/issues/new?template=correction.yml) is the remedy.
 
 ## It has been broken before
 
