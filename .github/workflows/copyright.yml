@@ -2,9 +2,11 @@
 # integration so no other installed app can satisfy it by publishing a status
 # with the same name.
 #
-# This is layer three of three (RD02): .gitignore, the pre-commit hook, then
-# this. The hook can be bypassed with --no-verify and does not run in GitHub's
-# web editor at all; this runs however the commit was made.
+# This is the third of three layers: .gitignore, the pre-commit hook, then
+# this. The first two live on the author's machine and can both be walked past
+# - .gitignore with `git add -f`, the hook with `--no-verify` - and neither
+# runs in GitHub's web editor at all. This one runs however the commit was
+# made, which is the only reason the other two are allowed to be convenient.
 #
 # Rewritten twice after adversarial audits. The first found that the previous
 # version could be walked past by a publisher PDF named paper.PDF, a PDF with

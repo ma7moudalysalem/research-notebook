@@ -79,6 +79,14 @@ Gimelshein
 IDSIA
 Milakov
 # --- this repository's own vocabulary ---
+waivable
+sublicensable
+sciencedirect
+onlinelibrary
+moudalysalem
+ieeexplore
+creativecommons
+esac
 cffconvert
 ckpt
 ipynb

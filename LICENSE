@@ -27,10 +27,14 @@ NOTE ON SCOPE
 This MIT licence covers the CODE in this repository: everything under tools/
 and any code inside reproductions/ and tutorials/.
 
-The WRITTEN material — paper summaries, notes, reading lists, curricula — is
-licensed CC BY 4.0 instead. See COPYRIGHT.md for the authoritative
-path-to-licence map, and LICENSES/CC-BY-4.0.txt for that licence.
+The WRITTEN material - the paper summaries, and anything else here that is
+prose rather than code - is licensed CC BY 4.0 instead. See COPYRIGHT.md for
+the authoritative path-to-licence map, and LICENSES/CC-BY-4.0.txt for that
+licence.
 
 MIT is kept at this canonical path so GitHub's licence detector, the repository
-badge and the API all read cleanly. A software licence says nothing sensible
-about a paper summary, which is why the split exists (RD25).
+badge and the API all read cleanly. The split exists because a software licence
+says nothing sensible about a paper summary: MIT grants the right to use,
+modify and sublicense a work "as software", which is not the permission a
+reader of prose needs, and it asks for a copyright notice rather than
+attribution to an author.

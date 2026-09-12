@@ -20,7 +20,7 @@ venue_type: conference
 arxiv: '2103.00020'
 url: https://arxiv.org/abs/2103.00020
 tracks:
-  - T04
+  - Multimodal AI
 tags:
   - arch/transformer
   - arch/vit
@@ -137,8 +137,8 @@ captions for the class names you happen to care about.
 - **Distribution-shift family** — ImageNetV2, ImageNet-R, ImageNet-A,
   ImageNet Sketch, ObjectNet, ImageNet-Vid, YouTube-BB.
 
-No dataset cards are written yet and none is wikilinked here. Under RD24 a card
-is owed before any of these is named in an experiment's frontmatter;
+No dataset cards are written yet and none is wikilinked here. A card is owed
+before any of these is named in an experiment's frontmatter;
 PatchCamelyon is the one I actually expect to need, so it is the one to write
 first.
 

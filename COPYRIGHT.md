@@ -25,6 +25,14 @@ paragraphs say the same thing.)*
 | `assets/figures/**` | See the `.source.yml` beside each file | Provenance is declared per figure, and a figure with no `.source.yml` does not get committed. |
 | `references/public.bib` | CC0-equivalent | Bibliographic facts are not copyrightable. |
 
+Of those paths, only `tools/`, `summaries/` and `docs/` hold anything today.
+The other rows, and the sections below that set out the rules for them, are the
+terms those paths will carry the day they first hold a file. They are decided
+in advance because a licence settled after the content exists is settled under
+pressure to keep the content. The trade is that this map runs ahead of the
+tree: read a row with no directory behind it as a commitment, not as a
+description of something you can go and look at.
+
 `summaries/LICENSE` repeats the CC BY marker at directory level, because
 GitHub's licence detector only reads the root `LICENSE` and would otherwise
 label the prose MIT — and a scraper reads the directory.
@@ -58,7 +66,13 @@ What is *not* mine, and never appears here:
 2. **A 40-word ceiling on any single quotation**, in quotation marks, with the
    source named. This is an operational limit I chose, not a legal threshold —
    fair dealing and fair use have no word count. It exists so the rule is
-   *checkable*, and `tools/promote.py` refuses above it.
+   *checkable*. The tool that promotes a note out of my private workspace
+   refuses to write out any file carrying a longer quotation, and it runs
+   before anything appears here, so you cannot inspect that refusal from this
+   repository. The half you can inspect is `tools/check_copyright.py`, which
+   counts quotations again on every pull request and refuses the same way -
+   once for a single over-long quotation, and once for a passage cut into
+   several short ones.
 3. **Quote only to discuss the wording itself.** If the quote could be replaced
    by a paraphrase without loss, paraphrase it.
 4. **Every summary ends with `## Source and attribution`** naming title,
@@ -86,9 +100,15 @@ Three lawful options, in the order I prefer them:
    if it does, it is a derivative, whatever route it took.
 3. **Link to the publisher's page.** Costs a click and is always safe.
 
-Enforced mechanically: every file in `assets/figures/` requires a sibling
-`<name>.source.yml` declaring `origin: original | redrawn | cc-licensed`, and
-`original` or `redrawn` requires a committed editable source — an `.svg`,
+Enforced mechanically by `tools/check_copyright.py`: every image tracked here
+requires a sibling `<name>.source.yml` declaring
+`origin: original | redrawn | cc-licensed`, wherever in the tree it sits and
+whatever it is called - the checker reads the first bytes as well as the name,
+so a bitmap committed under a `.dat` name is still a bitmap needing
+provenance. It is deliberately not scoped to one figures directory, because a
+directory list is a thing a seventh directory walks past.
+
+`original` or `redrawn` requires a committed editable source as well - an `.svg`,
 `.drawio`, `.excalidraw`, `.mmd` or the `.py` that plots it. You cannot claim
 you drew something without the thing you drew it with. `fair-use-quote` is not
 an accepted value in this repository.
@@ -98,13 +118,15 @@ CC-licensed figures are allowed with correct attribution, and the
 
 ## Datasets
 
-A dataset card here describes a dataset. It does not license one.
+A dataset card describes a dataset. It does not license one.
 
 No dataset content is redistributed from this repository — no images, no
 samples, no derived CSVs. Where a dataset's terms restrict what may be
-published from work using it, the card says so, and `promote.py` refuses to
-publish anything referencing a dataset whose `redistribution` is `forbidden` or
-`unverified`.
+published from work using it, the card says so, and the promotion tool in my
+private workspace refuses to write out anything referencing a dataset whose
+redistribution terms are forbidden or unverified. That refusal happens before a
+file is written here, which means you cannot check it from this repository;
+what you can check is that no dataset content is present.
 
 ## Reproductions
 

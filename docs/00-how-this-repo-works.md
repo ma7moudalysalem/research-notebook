@@ -48,13 +48,14 @@ commitment, and what you *can* verify from here is the second gate.
 `tools/check_copyright.py` runs on every pull request, from a workflow that
 takes its definition from `main` rather than from the pull request. Standard
 library only, no network, and its tests are beside it. As of this writing it
-checks:
+runs fifteen checks, in this order:
 
 | Check | Refuses |
 |---|---|
 | `no_third_party_pdf` | Any file named `.pdf`, in any letter case, anywhere. |
 | `pdf_magic_bytes` | Any file whose bytes are a PDF, whatever it is called. |
 | `archive_present` | Any archive, by name or by bytes. A zip is a container for the things above. |
+| `symlink_present` | Any path git records as a symlink. The link itself is the finding; its target is never opened, because it may sit outside the checkout entirely and a guard that followed it would read, and quote into a public log, a file that is not in this repository. |
 | `size_ceiling` | Any file over 5 MB. Nothing that belongs here is large. |
 | `image_provenance` | Any image, anywhere, without a sibling `.source.yml` declaring `origin: original`, `redrawn` or `cc-licensed` — and for the first two, the editable source it was made from. |
 | `svg_embeds_raster` | An SVG wrapping a bitmap, which would otherwise certify itself as original. |
@@ -63,15 +64,22 @@ checks:
 | `quote_aggregate_over_limit` | More than 120 quoted words in one section, or 300 in one file — so a long passage cannot be smuggled in as short pieces. Spans of eight words or fewer are titles and terms, and do not count. |
 | `raw_abstract_present` | More than 60 words under any heading called *abstract*, after a bare `Abstract` line — the shape a paste from a PDF produces — or under an `abstract` key in frontmatter. |
 | `notebook_outputs` | A notebook with rendered cells, which is the likeliest route for a figure or a data sample. |
-| `workflow_self_edit`, `guard_self_edit` | A pull request that changes the guard *and* content in one go. |
-| `unreadable_file` | Anything the checker could not open or decode. It fails closed rather than skipping. |
+| `workflow_self_edit` | A pull request that changes anything under `.github/` and anything outside it in one go. A `.github/`-only pull request still merges, or no workflow fix could ever land. |
+| `guard_self_edit` | A pull request that changes the checker, its tests or `.githooks/` in the same breath as content, or that deletes any of them, which the pairing rule on its own would wave through. |
+| `commit_attribution` | A pull request whose commits carry a `Co-authored-by` trailer, a "generated with" line, a `[bot]` author, or any author or committer who is not the owner. |
+
+One more finding, `unreadable_file`, is not in that list because it is not a
+check of its own. Any file the checker cannot open or decode is reported once,
+by whichever check reached it first, and nothing about that file is then
+assumed. It fails closed rather than skipping.
 
 The 40-word ceiling is an operational choice, not a legal threshold; fair
 dealing has no word count. It exists so the rule is *checkable*.
 
-The prose rules read `.md`, `.txt`, `.rst` and `.html`. A fence labelled with
-a real language is code and is skipped; a fence with no label, or with a label
-like `quote`, renders verbatim and is treated as a quotation. HTML comments are
+The prose rules read `.md`, `.markdown`, `.html`, `.htm`, `.txt` and `.rst`,
+in every directory, the root included. A fence labelled with a real language
+is code and is skipped; a fence with no label, or with a label like `quote`,
+renders verbatim and is treated as a quotation. HTML comments are
 stripped first, because they do not render. Frontmatter is read only for the
 `abstract` key: a quoted title is the owner's own text.
 
@@ -126,17 +134,25 @@ the check fail *open*. A 300-word quotation pasted in the web editor, where no
 local hook runs. And a pull request that replaced the checker with three lines
 that always passed.
 
-Two more were run against the version you are reading about. They got through
-with a 300-word quotation as an indented block, as a fence with no language,
-and as a `<pre>` element; with a paper pasted whole, its `Abstract` a bare
-line rather than a heading; and, in the other direction, they made the guard
-fire on a reading list of quoted titles, on a 12" display, on the '90s, and —
-the one that would have blocked the commit shipping it — on the checker's own
-source, because its docstring named the PDF header bytes.
+Two more were run against the Python checker you are reading about, and it
+gave way as well: a 300-word quotation smuggled in as an indented block, again
+as a fence with no language, again as a `<pre>` element, and a paper pasted
+whole with its `Abstract` a bare line rather than a heading. A fifth was then
+run across the whole repository rather than the checker alone, and most of
+what it found ran the other way, the guard refusing what it should have let
+past. It fired on the checker's own source, because a docstring there names
+the PDF header bytes, which would have blocked the very commit that shipped
+the rule. It fired on a reading list of quoted titles, none of which quoted
+anything. And it found several documents, this one included, claiming things
+that were not true of the repository as it stood; the revision you are reading
+is where those claims were corrected.
 
-Every one of those is now a regression test in `tools/tests/`. A fifth audit
-will find more; that directory is where to look for what has already been
-tried, and the correction template is where to report what has not.
+Every mechanical one of those is now a regression test in `tools/tests/`. The
+untrue claims were fixed by editing the documents, which no test can do for
+you, and that is the weaker half of this: a stale sentence fails silently
+where a stale rule fails loudly. A sixth audit will find more. That directory
+is where to look for what has already been tried, and the correction template
+is where to report what has not.
 
 ## Generated, not maintained
 
@@ -144,6 +160,7 @@ Indexes, per-track listings and the bibliography in the private workspace are
 generated from each note's frontmatter and live inside marked blocks. They are
 timestamp-free, so regenerating an unchanged tree produces an unchanged file
 and CI can assert it. The same discipline applies to the one generated file
-here: `.cspell/people.txt` is rebuilt from the authors of the public summaries
-on every promotion, and from nothing else — copying the private dictionary
-would have published a reading list nobody agreed to make public.
+here: `.cspell/people.txt` is rebuilt on every promotion from the author and
+venue names in the public summaries, and from nothing else. Copying the
+private dictionary across would have published a reading list nobody agreed to
+make public.

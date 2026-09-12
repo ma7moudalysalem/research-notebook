@@ -7,11 +7,18 @@
 ## No publisher PDFs
 
 Not in any directory, not in any commit, not in history. `.gitignore` refuses
-`*.pdf` outside `assets/figures/`, a pre-commit hook refuses it again, and a
-required CI check refuses it a third time. Three cheap independent layers,
-because this is the one mistake here with legal consequences and no clean undo:
-a history rewrite on a public repository does not remove forks, mirrors or
-caches.
+every `.pdf`, in any letter case, with no exemption for any directory; a
+pre-commit hook refuses it again; and a required CI check refuses it a third
+time, reading the first bytes as well as the name, so a PDF committed under
+another name is refused too. Three cheap independent layers, because this is
+the one mistake here with legal consequences and no clean undo: a history
+rewrite on a public repository does not remove forks, mirrors or caches.
+
+There used to be an exemption for figures, and it is gone. It let a publisher
+PDF renamed into the exempt directory walk past the first layer, and nothing
+here needs to be a PDF - figures are `.svg` or `.png`. The trade is that a
+legitimate PDF now has to be argued for rather than dropped in, which is the
+right way round for the one rule with no clean undo.
 
 Papers I have read exist as **notes about them**, which is my writing, not
 theirs.

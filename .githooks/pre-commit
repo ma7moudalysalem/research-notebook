@@ -1,6 +1,10 @@
 #!/bin/sh
 # ---------------------------------------------------------------------------
-# pre-commit — the copyright hard stop, layer two of three (RD02).
+# pre-commit - the copyright hard stop, layer two of three.
+#
+# Three layers, because each of the first two can be stepped over: the trade is
+# an extra place to keep in step, in exchange for a rule that holds whichever
+# route a file took into the repository.
 #
 # Layer one is .gitignore, which anyone can edit. Layer three is the CI job in
 # .github/workflows/copyright.yml, which runs however the commit was made.

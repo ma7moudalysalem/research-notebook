@@ -1,5 +1,9 @@
 #!/usr/bin/env python3
-"""The public copyright guard - layer three of three (RD02).
+"""The public copyright guard - layer three of three.
+
+Three layers, because each of the first two can be stepped over and the trade
+is worth it: an extra place to keep in step, in exchange for a rule that holds
+whichever route a file took into the repository.
 
 Layer one is `.gitignore`, which anyone can edit. Layer two is
 `.githooks/pre-commit`, which runs this file with `--staged` and which
@@ -8,7 +12,7 @@ runs however the commit was made: `.github/workflows/copyright.yml` calls it
 with `--all` on every pull request and every push to main.
 
 It is a deliberately INDEPENDENT implementation of the refusals in the private
-toolbox's `promote.py`, not a copy of them (RD28). The private tool guards the
+toolbox's `promote.py`, not a copy of them. The private tool guards the
 promotion path; this guards the repository, including every file that arrived
 by some other route - a drag-and-drop in the web editor, a stray `git add`, a
 rename. A stale mirror of the thing that catches your worst mistake is a real
@@ -78,9 +82,11 @@ adversary is an accident, and none of these happens by accident:
 * **`<foreignObject><img>` inside an SVG** and **an empty editable source
   satisfying provenance** are not caught; the provenance rule verifies that
   the owner made a declaration, not that the declaration is true.
-* **`tools/tests/conftest.py` edited alongside content** is not a self-edit
-  finding; harmless, because CI runs main's tests against the pull request's
-  tree, not the pull request's tests.
+* **a file added under `tools/` that is neither this checker nor its tests**
+  (say a second script) is not a guard path, so editing it alongside content
+  is not a self-edit finding; harmless, because CI runs main's copy of this
+  file against the pull request's tree, and a script that is not the guard
+  does not judge anything.
 * **a raw `> ` line inside an `.html` file** is a blockquote to the scanner
   although GitHub shows `.html` as source, where it is a literal character;
   a harmless over-match, accepted rather than special-cased.
@@ -141,6 +147,13 @@ Design rules, in the order they matter:
   runs, they can also refuse a tree that has dropped the checker, its tests
   or the pre-commit hook (REQUIRED_GUARD_PATHS). Changing the guard is
   allowed; removing it is not.
+* **The history says one person wrote it, or it does not merge.**
+  `commit_attribution` reads every commit on a pull request and refuses a
+  `Co-authored-by:` trailer, a "generated with/by" line, a `[bot]` marker,
+  and any author or committer who is not the owner. The claim survives the
+  merge - a squash keeps the trailers - so it is refused before it lands.
+  `.githooks/commit-msg` refuses the same message locally; a hook does not
+  run in GitHub's web editor, which is why the rule is in both places.
 
 Usage:
     python tools/check_copyright.py [--all | --staged | PATH...]
@@ -177,7 +190,10 @@ from typing import Callable, Optional
 # is not there.
 # ---------------------------------------------------------------------------
 
-# research-workspace/config/policy.yml  ->  promotion.max_quote_words
+# The operational quotation ceiling, matched to the one the private tool
+# refuses on so a summary cannot pass there and fail here. It is a self-imposed
+# number, not a legal threshold - fair dealing has no word count. It exists so
+# that the rule is checkable at all.
 MAX_QUOTE_WORDS = 40
 
 # Three times the single-quotation ceiling, per H2 section. Eight 38-word
@@ -198,17 +214,19 @@ MIN_AGGREGATE_SPAN_WORDS = 8
 # is a reproduction; it is counted as a quotation rather than blanked as code.
 MAX_CODE_SPAN_WORDS = MAX_QUOTE_WORDS
 
-# research-workspace/tools/promote.py  ->  IMAGE_ORIGIN_ALLOWED
-# (policy.yml states these in a comment on promotion.refuse_if, not as data.)
+# The three origins a figure may declare. Deliberately the same three the
+# private tool refuses on, restated here as data rather than imported: this
+# checker has no access to that repository, and a guard that depends on a file
+# it cannot read is a guard that silently stops checking.
 IMAGE_ORIGIN_ALLOWED = ("original", "redrawn", "cc-licensed")
 
-# research-workspace/tools/promote.py  ->  RAW_ABSTRACT_WORDS
+# Also matched against the private tool's ceiling, and restated for the same
+# reason as above.
 RAW_ABSTRACT_WORDS = 60
 
-# The previous public .githooks/pre-commit hard-coded 5242880 bytes and said
-# so: "far tighter than the private repo's 25 MB". This is NOT a mirror of
-# policy.yml size.max_file_mb (25); that limit exists to survive a PDF library
-# in plain git, and nothing that belongs here is big.
+# Deliberately far tighter than the private repository's file ceiling, which
+# has to survive a library of paper PDFs in plain git. Nothing that belongs
+# here is big, so a large file is a mistake worth stopping on.
 SIZE_CEILING_BYTES = 5 * 1024 * 1024
 
 # How much of a quotation a finding may echo back. The report goes into a CI
@@ -279,8 +297,11 @@ RASTER_MAGIC = (
 )
 
 # The self-edit rules. `.github/` is the whole directory, not just workflows/:
-# CODEOWNERS, the dependabot config and the issue templates are part of the
-# judge too. The guard is this file, its tests and the hooks.
+# CODEOWNERS, the labels file and the issue templates are part of the judge
+# too, and so is anything else that lands there later - the prefix is matched,
+# not a list of names, so a new file under .github/ is covered on the day it
+# arrives rather than on the day someone remembers to add it here. The guard
+# is this file, its tests and the hooks.
 GITHUB_DIR = ".github/"
 GUARD_FILES = ("tools/check_copyright.py", "tools/tests/test_check_copyright.py")
 GUARD_DIRS = (".githooks/",)
@@ -295,6 +316,40 @@ NON_CONTENT_DIRS = (".github/", "tools/", ".githooks/")
 # but the hook that runs the checker is a named file here: an empty
 # `.githooks/` is not a hook.
 REQUIRED_GUARD_PATHS = GUARD_FILES + (".githooks/pre-commit",)
+
+# The one person this repository's history is allowed to name. Written out
+# here rather than read from `git config`: a wrong local config is exactly
+# where a wrong name in the log comes from, so asking git would be asking the
+# thing under test. The trade is that a change of address is a code change.
+OWNER_NAME = "Mahmoud Salem"
+OWNER_EMAIL = "ma7moudalysalem@gmail.com"
+# GitHub rewrites the address to `<id>+<login>@users.noreply.github.com` when
+# the owner keeps the real one private. Same person, different spelling, and
+# refusing it would refuse commits made in the web editor.
+OWNER_NOREPLY = re.compile(r"\A[0-9]+\+ma7moudalysalem@users\.noreply\.github\.com\Z",
+                           re.IGNORECASE)
+# (pattern, what to call it). Matched against the whole commit message.
+# `[bot]` is matched anywhere, not just in an author line, because it is the
+# marker GitHub puts in an app's name and it reads the same wherever it lands.
+ATTRIBUTION_MARKERS = (
+    (re.compile(r"^[ \t]*co-authored-by[ \t]*:", re.IGNORECASE | re.MULTILINE),
+     "a Co-authored-by: trailer"),
+    (re.compile(r"generated\s+(?:with|by)", re.IGNORECASE), "a \"generated with/by\" line"),
+    (re.compile(r"\[bot\]", re.IGNORECASE), "a [bot] marker"),
+)
+# One record per commit, NUL-terminated so a message containing blank lines,
+# a NUL-free binary-looking blob or anything else still splits cleanly. The
+# first five lines are fixed fields; everything after them is the message.
+COMMIT_LOG_FORMAT = "%H%n%an%n%ae%n%cn%n%ce%n%B%x00"
+# Said once, quoted by every finding this rule raises.
+ATTRIBUTION_REASON = (
+    "This repository's history is meant to read as one person's work: a trailer, a "
+    "generated-with line or a bot author in the log is a claim about authorship that "
+    "the repository does not want to make, and it outlives the pull request because a "
+    "squash keeps it. Rewrite the commit before merging (`git commit --amend`, or "
+    "`git rebase -i` for an older one). `.githooks/commit-msg` refuses the same message "
+    "locally; this is the half that runs however the commit was made."
+)
 
 # A fence whose info string names one of these languages is code and is
 # blanked. A fence with ANY other info string - empty, `text`, `abstract`, a
@@ -532,6 +587,8 @@ class Context:
     _unreadable: set[str] = field(default_factory=set)
     # (changed paths, error) against the pull request's base branch; None until asked.
     _base_diff: Optional[tuple[Optional[set[str]], Optional[str]]] = None
+    # (base commit, error) for the pull request's base ref; None until asked.
+    _base_rev: Optional[tuple[Optional[str], Optional[str]]] = None
 
     def add(self, check: str, path: str, message: str, line: Optional[int] = None) -> None:
         self.findings.append(Finding(check, path, message, line))
@@ -2108,11 +2165,10 @@ def resolve_base(ctx: Context, base: str) -> Optional[str]:
     return None
 
 
-def changed_against_base(ctx: Context) -> tuple[Optional[set[str]], Optional[str]]:
-    """(paths that differ from the pull request's base branch, None), or
-    (None, why that could not be determined). Resolved and diffed once; both
-    self-edit rules read the same answer. Renames are listed as a deletion and
-    an addition, so a guard file moved aside still counts as changed.
+def base_commit(ctx: Context) -> tuple[Optional[str], Optional[str]]:
+    """(the commit the pull request's base ref names, None), or (None, why it
+    could not be determined). Resolved once; every rule that needs the base
+    reads the same answer, so the three of them cost git one resolution.
 
     The base ref is resolved LOCALLY first - the ref itself, then
     `origin/<ref>`, then `refs/remotes/origin/<ref>` - and the network is
@@ -2120,20 +2176,41 @@ def changed_against_base(ctx: Context) -> tuple[Optional[set[str]], Optional[str
     out with `fetch-depth: 0`, so in CI the base commit is already present and
     no fetch happens at all; fetching unconditionally turned a restricted
     runner or one dropped packet into a blocking finding on a valid pull
-    request. When nothing resolves and the fetch fails too, the finding stands
-    and blocks: failing open is the hole this rule exists to close.
+    request. When nothing resolves and the fetch fails too, the caller gets
+    the reason and blocks on it: failing open is the hole these rules exist
+    to close.
     """
-    if ctx._base_diff is not None:
-        return ctx._base_diff
+    if ctx._base_rev is not None:
+        return ctx._base_rev
     base = os.environ.get("GITHUB_BASE_REF", "").strip()
     rev = resolve_base(ctx, base)
     if rev is None:
         try:
             ctx.repo.git("fetch", "--depth=1", "origin", base)
         except RepoError as exc:
-            ctx._base_diff = (None, _unresolved_base_message(base, exc))
-            return ctx._base_diff
+            ctx._base_rev = (None, _unresolved_base_message(base, exc))
+            return ctx._base_rev
         rev = "FETCH_HEAD"
+    ctx._base_rev = (rev, None)
+    return ctx._base_rev
+
+
+def changed_against_base(ctx: Context) -> tuple[Optional[set[str]], Optional[str]]:
+    """(paths that differ from the pull request's base branch, None), or
+    (None, why that could not be determined). Diffed once; both self-edit
+    rules read the same answer. Renames are listed as a deletion and an
+    addition, so a guard file moved aside still counts as changed.
+
+    The base commit comes from `base_commit` above, which is where the
+    resolution order and the fail-closed behaviour are explained.
+    """
+    if ctx._base_diff is not None:
+        return ctx._base_diff
+    base = os.environ.get("GITHUB_BASE_REF", "").strip()
+    rev, why = base_commit(ctx)
+    if rev is None:
+        ctx._base_diff = (None, why)
+        return ctx._base_diff
     try:
         out = ctx.repo.git("diff", "--name-only", "-z", "--no-renames", rev)
     except RepoError as exc:
@@ -2156,8 +2233,8 @@ def _unresolved_base_message(base: str, exc: Exception) -> str:
 
 def check_workflow_self_edit(ctx: Context) -> None:
     """On a pull request, .github/ (the whole directory: workflows, CODEOWNERS,
-    dependabot, templates) may not change in the same pull request as anything
-    outside it.
+    the labels file, issue templates) may not change in the same pull request
+    as anything outside it.
 
     Both halves matter. A PR that can edit its own guard AND ship content in
     the same breath can neuter the guard for exactly that content, and a
@@ -2232,6 +2309,95 @@ def check_guard_self_edit(ctx: Context) -> None:
                 "guard that is on main.")
 
 
+def parse_commit_log(out: str) -> list[dict]:
+    """The records produced by COMMIT_LOG_FORMAT, in log order.
+
+    Raises ValueError on a record that does not have its five fixed fields.
+    A malformed record is not skipped: it would be a commit the rule below
+    never looked at, which is the same silence the first audit found four of.
+    """
+    records: list[dict] = []
+    for chunk in out.split("\0"):
+        if not chunk.strip():
+            continue
+        lines = chunk.lstrip("\n").split("\n")
+        if len(lines) < 6:
+            raise ValueError(f"a commit record has {len(lines)} line(s), not the expected six "
+                             "or more (sha, author name, author email, committer name, "
+                             "committer email, message)")
+        records.append({
+            "sha": lines[0],
+            "author_name": lines[1],
+            "author_email": lines[2],
+            "committer_name": lines[3],
+            "committer_email": lines[4],
+            "message": "\n".join(lines[5:]),
+        })
+    return records
+
+
+def is_owner_email(email: str) -> bool:
+    """True for the owner's address in either spelling it can appear in."""
+    email = email.strip()
+    return email.lower() == OWNER_EMAIL or bool(OWNER_NOREPLY.match(email))
+
+
+def attribution_faults(record: dict) -> list[str]:
+    """Every reason one commit fails the attribution rule, in message order."""
+    faults = [f"its message carries {label}"
+              for pattern, label in ATTRIBUTION_MARKERS if pattern.search(record["message"])]
+    for role in ("author", "committer"):
+        name, email = record[f"{role}_name"].strip(), record[f"{role}_email"]
+        if name != OWNER_NAME or not is_owner_email(email):
+            faults.append(f"its {role} is {name} <{email.strip()}>, not "
+                          f"{OWNER_NAME} <{OWNER_EMAIL}>")
+    return faults
+
+
+def check_commit_attribution(ctx: Context) -> None:
+    """On a pull request, every commit in base..HEAD must read as the owner's
+    own work: no `Co-authored-by:` trailer, no "generated with/by" line, no
+    `[bot]` marker, and an author and a committer who are the owner.
+
+    Why the repository holds this line: its history is meant to read as one
+    person's work, and a trailer or a bot author in the log is a claim about
+    authorship that the repository does not want to make. The trade is that a
+    genuine collaborator cannot be credited in a trailer; this notebook has
+    one author, and if that changes the rule changes with it.
+
+    `.githooks/commit-msg` refuses the same message locally, but a hook does
+    not run in GitHub's web editor and `--no-verify` skips it, so this half
+    runs however the commit was made. GITHUB_BASE_REF is set only on
+    pull-request events, so a local run and a push to main skip this silently.
+    """
+    if not os.environ.get("GITHUB_BASE_REF", "").strip():
+        return
+    rev, why = base_commit(ctx)
+    if rev is None:
+        ctx.add("commit_attribution", ".githooks/commit-msg", f"{why}; the guard fails closed.")
+        return
+    try:
+        out = ctx.repo.git("log", f"--format={COMMIT_LOG_FORMAT}", f"{rev}..HEAD")
+    except RepoError as exc:
+        ctx.add("commit_attribution", ".githooks/commit-msg",
+                f"the commits on this pull request could not be listed ({exc}), so their "
+                "authorship cannot be checked; the guard fails closed.")
+        return
+    try:
+        records = parse_commit_log(out.decode("utf-8", "replace"))
+    except ValueError as exc:
+        ctx.add("commit_attribution", ".githooks/commit-msg",
+                f"the commit log could not be parsed ({exc}), so authorship cannot be "
+                "checked; the guard fails closed.")
+        return
+    for record in records:
+        faults = attribution_faults(record)
+        if faults:
+            ctx.add("commit_attribution", ".githooks/commit-msg",
+                    f"commit {record['sha'][:12]} is refused because "
+                    f"{'; and '.join(faults)}. {ATTRIBUTION_REASON}")
+
+
 CHECKS: tuple[Callable[[Context], None], ...] = (
     check_no_third_party_pdf,
     check_pdf_magic_bytes,
@@ -2247,6 +2413,7 @@ CHECKS: tuple[Callable[[Context], None], ...] = (
     check_notebook_outputs,
     check_workflow_self_edit,
     check_guard_self_edit,
+    check_commit_attribution,
 )
 
 

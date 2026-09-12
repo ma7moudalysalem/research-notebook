@@ -13,7 +13,7 @@ venue_type: conference
 arxiv: '1611.03530'
 url: https://arxiv.org/abs/1611.03530
 tracks:
-  - T06
+  - ML Theory & Methodology
 tags:
   - domain/ml-theory
   - task/classification
@@ -115,10 +115,10 @@ generalisation.
 - **ImageNet (ILSVRC 2012)**, used to show the effect is not an artefact of a
   small dataset.
 
-No cards exist under `datasets/` — the directory is not yet created in this
-workspace — so nothing is wikilinked here and I have not written a `datasets:`
-frontmatter key that would dangle. Both are open-access with a card that would
-be quick to write under RD24. Worth doing when the first experiment needs one.
+No cards exist for either of these yet, so nothing is wikilinked here and I have
+not written a `datasets:` frontmatter key that would dangle. Both are
+open-access, so the cards would be quick to write. Worth doing when the first
+experiment needs one.
 
 ## Results
 
@@ -222,10 +222,10 @@ later work, not by this paper, and I should not cite this paper for it.
 - **Would I be able to reproduce this?** Yes, completely, on one consumer GPU
   overnight, and I should. Take a small ResNet on CIFAR-10, permute the label
   tensor, train to zero training error, plot both curves. This is the strongest
-  candidate for my first T06 experiment: it costs almost nothing, it produces a
-  figure I will reuse in a proposal, and it converts a fact I have read into a
-  fact I have watched happen. The pre-registered hypothesis under RD22 writes
-  itself.
+  candidate for my first experiment in ML theory: it costs almost
+  nothing, it produces a figure I will reuse in a proposal, and it converts a
+  fact I have read into a fact I have watched happen. The hypothesis to
+  pre-register before the first run writes itself.
 
 ## Questions
 

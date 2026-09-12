@@ -13,7 +13,7 @@ venue_type: conference
 arxiv: '2205.14135'
 url: https://arxiv.org/abs/2205.14135
 tracks:
-  - T05
+  - AI Systems
 tags:
   - domain/ai-systems
   - arch/transformer
@@ -97,10 +97,9 @@ the sparsity fraction, and this is the variant that reaches 64K.
 
 ## Datasets
 
-None of these have a card under `datasets/` yet. The directory does not exist in
-this workspace, so RD24's "every dataset reference resolves to a card" is not
-satisfiable today, and I have deliberately not written a `datasets:` frontmatter
-key that would dangle. What the paper uses:
+None of these has a dataset card written yet, so this note carries no
+`datasets:` frontmatter key — a reference to a card that has not been written is
+a broken claim about provenance. What the paper uses:
 
 - **OpenWebText** for the GPT-2 training runs.
 - **Wikipedia + BookCorpus** for BERT-large, MLPerf-style.
@@ -109,10 +108,10 @@ key that would dangle. What the paper uses:
 - **MIMIC-III** and **ECtHR** for long-document classification.
 
 MIMIC-III is the one that matters to me and the one with teeth: PhysioNet
-credentialed access under a signed DUA, which under RD24 means a card with
-`access: credentialed` and `redistribution: forbidden` before any experiment of
-mine may reference it. Worth noticing that the paper's only clinical evidence
-sits on the dataset a card would gate hardest.
+credentialed access under a signed DUA, which means a card recording
+`access: credentialed` and `redistribution: forbidden` has to exist before any
+experiment of mine may reference it. Worth noticing that the paper's only
+clinical evidence sits on the dataset a card would gate hardest.
 
 ## Results
 
@@ -211,8 +210,8 @@ does not separate them.
   is candid that this is hand-written rather than generated. The benchmarks,
   yes, and cheaply: runtime and peak memory for attention at 512 / 1K / 2K / 4K
   against a deliberately unfused PyTorch implementation on one consumer GPU is
-  an afternoon. That is the right first T05 experiment, because it turns the
-  memory-bound claim into something I have measured rather than read.
+  an afternoon. That is the right first AI systems experiment, because it turns
+  the memory-bound claim into something I have measured rather than read.
 
 ## Questions
 

@@ -16,7 +16,7 @@ venue_type: conference
 arxiv: '1706.03762'
 url: https://arxiv.org/abs/1706.03762
 tracks:
-  - T03
+  - Foundation Models
 tags:
   - arch/transformer
   - domain/foundation-models
@@ -127,8 +127,8 @@ warmup that you cannot remove.
   training sentences), plus a larger semi-supervised corpus of roughly 17M
   sentences.
 
-No dataset cards exist for these yet, so nothing is wikilinked here. RD24 owes a
-card before any of these is referenced from an experiment's frontmatter, and
+No dataset cards exist for these yet, so nothing is wikilinked here. A card is
+owed before any of these is referenced from an experiment's frontmatter, and
 none of the three is a dataset I expect to use, so writing the cards now would
 be ceremony.
 

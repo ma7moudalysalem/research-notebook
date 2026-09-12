@@ -24,7 +24,7 @@
 - [ ] Links resolve
 - [ ] Nothing here was copy-pasted out of the private workspace by hand
 
-<!-- If this PR came from `rw promote`, say so. That tool refuses on eleven
+<!-- If this PR came from `rw promote`, say so. That tool refuses on ten
      mechanical conditions, but none of them can judge whether a paraphrase is
      too close to its source. That judgement is a human reading the rendered
      diff, and this PR is where it happens. -->

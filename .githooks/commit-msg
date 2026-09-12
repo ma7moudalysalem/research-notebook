@@ -1,10 +1,19 @@
 #!/bin/sh
 # Conventional Commits plus a required DCO sign-off.
 #
-# DCO rather than a CLA (RD25): the prose here is CC BY, which makes the
+# DCO rather than a CLA: the prose here is CC BY, which makes the
 # provenance of contributed text something the maintainer inherits, and the DCO
 # is the lightest mechanism that addresses it. A CLA bot would deter a two-line
 # typo fix and signal a corporate posture that does not fit a student notebook.
+#
+# This hook is the LOCAL half of the attribution rule. CI holds the other half:
+# `commit_attribution` in tools/check_copyright.py reads every commit on a pull
+# request and refuses the same things there. Both halves are needed because a
+# hook does not run in GitHub's web editor and `--no-verify` skips it, and
+# because the history is meant to read as one person's work - a trailer or a
+# bot author in the log is a claim about authorship that this repository does
+# not want to make. The trade is that a genuine collaborator cannot be credited
+# in a trailer; this notebook has one author, and if that changes so does this.
 set -e
 MSG="$1"
 SUBJECT=$(head -n 1 "$MSG")
@@ -25,8 +34,40 @@ if [ "${#SUBJECT}" -gt 72 ]; then
   exit 1
 fi
 
+OWNER_NAME='Mahmoud Salem'
+OWNER_EMAIL='ma7moudalysalem@gmail.com'
+
+reject_attribution() {
+  printf '\n  Commit message rejected: it carries %s.\n\n  This history is meant to read as one person'"'"'s work, and such a line is a\n  claim about authorship this repository does not make. It outlives the pull\n  request, because a squash keeps it. Remove the line and commit again.\n\n  CI refuses it too: tools/check_copyright.py reads every commit on the pull\n  request, so --no-verify only moves the refusal somewhere more public.\n\n' \
+    "$1" >&2
+  exit 1
+}
+
+if grep -qiE '^[[:space:]]*co-authored-by[[:space:]]*:' "$MSG"; then
+  reject_attribution 'a Co-authored-by: trailer'
+fi
+
+if grep -qiE 'generated[[:space:]]+(with|by)' "$MSG"; then
+  reject_attribution 'a "generated with/by" line'
+fi
+
+# Escaped for ERE, not -F: `grep -iF` aborts on some builds, and an unescaped
+# `[bot]` is a bracket expression that matches a bare b, o or t.
+if grep -qiE '\[bot\]' "$MSG"; then
+  reject_attribution 'a [bot] marker'
+fi
+
 if ! grep -qE '^Signed-off-by: .+ <.+@.+>' "$MSG"; then
   printf '\n  Missing DCO sign-off.\n\n  Commit with -s:  git commit -s\n\n  By signing off you certify the Developer Certificate of Origin\n  (https://developercertificate.org/). See COPYRIGHT.md#contributions.\n\n' >&2
+  exit 1
+fi
+
+# The sign-off must name the owner, not merely somebody. A sign-off in another
+# name is the same authorship claim the rules above refuse, made in the one
+# line that is meant to certify who wrote this.
+if ! grep -qxF "Signed-off-by: $OWNER_NAME <$OWNER_EMAIL>" "$MSG"; then
+  printf '\n  Sign-off does not name the owner.\n\n    want: Signed-off-by: %s <%s>\n\n  Set git config user.name and user.email to match, then commit with -s.\n\n' \
+    "$OWNER_NAME" "$OWNER_EMAIL" >&2
   exit 1
 fi
 exit 0

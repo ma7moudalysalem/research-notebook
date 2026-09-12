@@ -1,10 +1,16 @@
 # ---------------------------------------------------------------------------
 # research-notebook — ignore rules
 #
-# Belt and braces. Everything that must never reach this repository is already
-# refused by tools/promote.py and by .githooks/pre-commit; these lines are the
-# third independent layer (RD02), and the one that catches a file added by
-# hand rather than through the promotion path.
+# Belt and braces, and the first of the three layers that live in this
+# repository: this file, then .githooks/pre-commit, then the required check in
+# .github/workflows/copyright.yml. Anything arriving by the promotion path has
+# already been refused once by the tool in the private workspace, which runs
+# before a file is written here and cannot be inspected from here; these lines
+# are what catches a file added by hand instead.
+#
+# The trade: anyone can edit this file, and git ignores nothing that is already
+# tracked. So the two layers behind it do not trust it, and the checker reads
+# the first bytes of a file as well as its name.
 # ---------------------------------------------------------------------------
 
 # ---- the copyright boundary ------------------------------------------------

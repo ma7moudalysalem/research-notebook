@@ -17,6 +17,9 @@ header, tracked symlinks, UTF-8-clean rasters under prose names, an SVG
 `<image>` tag whose href hid behind a quoted `>`, a pull request that DELETES
 the guard rather than editing it, `check_copyright.py .` selecting nothing,
 a base-ref fetch on every run, and a hook that tested the worktree only.
+The sixth pass added `commit_attribution` and the commit-msg hook tests: the
+history is meant to read as one person's work, so both halves of that rule -
+the hook locally, the checker on the pull request - are held by tests here.
 
 One rule of this file: the PDF header bytes are never written out literally
 in its first two kilobytes (`PDF_BYTES` below is built by concatenation),
@@ -1488,10 +1491,12 @@ def test_workflow_edit_on_a_pull_request_is_caught(tmp_path, monkeypatch):
 
 def test_workflow_only_pull_request_passes_workflow_rule(tmp_path, monkeypatch):
     # Without this, no workflow fix could ever merge - including the one that
-    # ships this checker.
+    # ships this checker. The second path is invented for this fixture and
+    # exists nowhere in the repository: the rule matches the .github/ prefix
+    # rather than a list of names, so any second file under it will do.
     work = _clone_with_upstream(tmp_path)
     _pr(work, {".github/workflows/copyright.yml": "name: copyright\njobs: {}\n",
-               ".github/dependabot.yml": "version: 2\n"})
+               ".github/fixture-only-not-a-real-file.yml": "synthetic: true\n"})
     monkeypatch.setenv("GITHUB_BASE_REF", "main")
     assert "workflow_self_edit" not in checks(run(work))
 
@@ -1570,6 +1575,146 @@ def test_content_only_pull_request_passes_guard_rule(tmp_path, monkeypatch):
     _pr(work, {"docs/new.md": "# New\n\nProse.\n"})
     monkeypatch.setenv("GITHUB_BASE_REF", "main")
     assert "guard_self_edit" not in checks(run(work))
+
+
+# ---------------------------------------------------------------------------
+# commit_attribution
+#
+# The history is meant to read as one person's work, so a trailer, a
+# generated-with line, a [bot] marker or a stranger in the author or committer
+# field is refused on the pull request. The fixture repositories elsewhere in
+# this file commit as `t <t@example.invalid>`, which this rule refuses by
+# design; every test below therefore sets the identity it means to test.
+# ---------------------------------------------------------------------------
+
+OWNER = "Mahmoud Salem"
+OWNER_MAIL = "ma7moudalysalem@gmail.com"
+OWNER_NOREPLY_MAIL = "1234567+ma7moudalysalem@users.noreply.github.com"
+
+
+def _pr_as(work: Path, message: str, name: str = OWNER, email: str = OWNER_MAIL,
+           committer_name: str | None = None, committer_email: str | None = None,
+           files: dict | None = None) -> None:
+    """One pull-request commit with a chosen message, author and committer.
+
+    A later `-c` beats an earlier one, so these override the identity the
+    `git` helper above sets for every other test; `--author` then moves the
+    author away from the committer where a test needs the two to differ.
+    """
+    _pr_branch(work)
+    write(work, files or {"docs/new.md": "# New\n\nProse.\n"})
+    git(work, "add", "-A", "--force")
+    git(work,
+        "-c", f"user.name={committer_name or name}",
+        "-c", f"user.email={committer_email or email}",
+        "commit", "-q", "--no-verify", "--author", f"{name} <{email}>", "-m", message)
+
+
+def test_owner_authored_commit_passes_attribution(tmp_path, monkeypatch):
+    work = _clone_with_upstream(tmp_path)
+    _pr_as(work, "docs: add a note\n\nSigned-off-by: Mahmoud Salem <ma7moudalysalem@gmail.com>\n")
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+    assert "commit_attribution" not in checks(run(work))
+
+
+def test_co_authored_by_trailer_is_refused(tmp_path, monkeypatch):
+    work = _clone_with_upstream(tmp_path)
+    _pr_as(work, "docs: add a note\n\nCo-authored-by: Someone Else <else@example.invalid>\n")
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+    hits = only(run(work), "commit_attribution")
+    assert len(hits) == 1
+    head = git(work, "rev-parse", "HEAD").strip()
+    assert head[:12] in hits[0].message
+    assert "Co-authored-by: trailer" in hits[0].message
+    assert "one person's work" in hits[0].message
+
+
+def test_generated_with_line_is_refused(tmp_path, monkeypatch):
+    work = _clone_with_upstream(tmp_path)
+    _pr_as(work, "docs: add a note\n\nGenerated with a tool that wrote the prose.\n")
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+    hits = only(run(work), "commit_attribution")
+    assert hits and 'generated with/by" line' in hits[0].message
+
+
+def test_bot_author_is_refused(tmp_path, monkeypatch):
+    work = _clone_with_upstream(tmp_path)
+    _pr_as(work, "chore: bump a thing", name="renovate[bot]",
+           email="renovate[bot]@users.noreply.github.com")
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+    hits = only(run(work), "commit_attribution")
+    assert hits and "its author is renovate[bot]" in hits[0].message
+
+
+def test_a_different_human_author_is_refused(tmp_path, monkeypatch):
+    work = _clone_with_upstream(tmp_path)
+    _pr_as(work, "docs: add a note", name="Someone Else", email="else@example.invalid")
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+    hits = only(run(work), "commit_attribution")
+    assert hits and "its author is Someone Else <else@example.invalid>" in hits[0].message
+
+
+def test_a_different_committer_is_refused_even_when_the_author_is_the_owner(tmp_path, monkeypatch):
+    # Both fields are checked: a rebase by someone else rewrites the committer
+    # and leaves the author alone.
+    work = _clone_with_upstream(tmp_path)
+    _pr_as(work, "docs: add a note", committer_name="Someone Else",
+           committer_email="else@example.invalid")
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+    hits = only(run(work), "commit_attribution")
+    assert hits and "its committer is Someone Else" in hits[0].message
+    assert "its author is" not in hits[0].message
+
+
+def test_github_noreply_address_is_the_same_person(tmp_path, monkeypatch):
+    # The owner keeping the real address private, or committing in the web
+    # editor. Refusing this form would refuse the owner's own commits.
+    work = _clone_with_upstream(tmp_path)
+    _pr_as(work, "docs: add a note", email=OWNER_NOREPLY_MAIL)
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+    assert "commit_attribution" not in checks(run(work))
+    assert cc.is_owner_email(OWNER_NOREPLY_MAIL)
+    assert cc.is_owner_email(OWNER_MAIL.upper())
+    assert not cc.is_owner_email("ma7moudalysalem@users.noreply.github.com")
+    assert not cc.is_owner_email("evil+ma7moudalysalem@users.noreply.github.com")
+
+
+def test_attribution_rule_is_silent_without_base_ref(tmp_path, monkeypatch):
+    # Same condition as the other self-edit rules: no pull request, no rule.
+    work = _clone_with_upstream(tmp_path)
+    _pr_as(work, "docs: a note\n\nCo-authored-by: Someone <s@example.invalid>\n",
+           name="Someone Else", email="else@example.invalid")
+    monkeypatch.delenv("GITHUB_BASE_REF", raising=False)
+    assert "commit_attribution" not in checks(run(work))
+
+
+def test_attribution_rule_reads_every_commit_in_the_range(tmp_path, monkeypatch):
+    # One clean commit does not cover for a dirty one behind it.
+    work = _clone_with_upstream(tmp_path)
+    _pr_as(work, "docs: first\n\nCo-authored-by: Someone <s@example.invalid>\n",
+           files={"docs/one.md": "# One\n\nProse.\n"})
+    dirty = git(work, "rev-parse", "HEAD").strip()
+    _pr_as(work, "docs: second", files={"docs/two.md": "# Two\n\nProse.\n"})
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+    hits = only(run(work), "commit_attribution")
+    assert len(hits) == 1 and dirty[:12] in hits[0].message
+
+
+def test_attribution_findings_name_the_hook_that_holds_the_other_half(tmp_path, monkeypatch):
+    work = _clone_with_upstream(tmp_path)
+    _pr_as(work, "docs: a note", name="Someone Else", email="else@example.invalid")
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+    hits = only(run(work), "commit_attribution")
+    assert hits and hits[0].path == ".githooks/commit-msg"
+
+
+def test_commit_log_parser_fails_closed_on_a_short_record():
+    with pytest.raises(ValueError):
+        cc.parse_commit_log("sha\nname\nemail\n\0")
+    parsed = cc.parse_commit_log("sha\nan\nae\ncn\nce\nsubject\n\nbody\n\0\n")
+    assert len(parsed) == 1
+    assert parsed[0]["sha"] == "sha" and parsed[0]["committer_email"] == "ce"
+    assert parsed[0]["message"] == "subject\n\nbody\n"
 
 
 # ---------------------------------------------------------------------------
@@ -2252,7 +2397,7 @@ def test_unresolvable_base_ref_still_blocks_and_says_what_to_run(tmp_path, monke
     work = _clone_with_upstream(tmp_path)
     monkeypatch.setenv("GITHUB_BASE_REF", "no-such-branch")
     found = run(work)
-    for check in ("workflow_self_edit", "guard_self_edit"):
+    for check in ("workflow_self_edit", "guard_self_edit", "commit_attribution"):
         hits = only(found, check)
         assert hits, check
         message = hits[0].message
@@ -2328,6 +2473,73 @@ def test_hook_gets_past_both_presence_tests_when_the_checker_is_there(tmp_path):
     assert proc.returncode == 1
     assert "no python interpreter on PATH" in proc.stderr
     assert "WORKING TREE" not in proc.stderr and "NOT IN THE INDEX" not in proc.stderr
+
+
+# ---------------------------------------------------------------------------
+# .githooks/commit-msg - the local half of the attribution rule
+# ---------------------------------------------------------------------------
+
+MSG_HOOK = TOOLS.parent / ".githooks" / "commit-msg"
+SIGN_OFF = f"Signed-off-by: {OWNER} <{OWNER_MAIL}>\n"
+
+
+def run_msg_hook(tmp_path: Path, message: str) -> subprocess.CompletedProcess:
+    """The real commit-msg hook, run by sh, over a message file."""
+    msg = tmp_path / "COMMIT_EDITMSG"
+    msg.write_text(message, encoding="utf-8", newline="\n")
+    return subprocess.run([SH, MSG_HOOK.as_posix(), str(msg)], cwd=str(tmp_path),
+                          capture_output=True, text=True, encoding="utf-8", errors="replace")
+
+
+@needs_sh
+def test_msg_hook_accepts_a_conventional_commit_signed_by_the_owner(tmp_path):
+    proc = run_msg_hook(tmp_path, "docs: add a note\n\n" + SIGN_OFF)
+    assert proc.returncode == 0, proc.stderr
+
+
+@needs_sh
+@pytest.mark.parametrize("line, wanted", [
+    ("Co-authored-by: Someone Else <else@example.invalid>", "a Co-authored-by: trailer"),
+    ("co-authored-by: someone <s@example.invalid>", "a Co-authored-by: trailer"),
+    ("Generated with a tool that wrote it", 'a "generated with/by" line'),
+    ("generated   by something", 'a "generated with/by" line'),
+    ("Bumped by renovate[bot]", "a [bot] marker"),
+])
+def test_msg_hook_rejects_an_authorship_claim(tmp_path, line, wanted):
+    proc = run_msg_hook(tmp_path, f"docs: add a note\n\n{line}\n\n" + SIGN_OFF)
+    assert proc.returncode == 1
+    assert wanted in proc.stderr
+    assert "one person's work" in proc.stderr
+
+
+@needs_sh
+def test_msg_hook_does_not_fire_on_the_bare_word_bot(tmp_path):
+    # Negative: `[bot]` is the marker, not the letters b, o and t. An
+    # unescaped bracket expression matched any one of them.
+    proc = run_msg_hook(tmp_path, "docs: a note about bots and robots\n\n" + SIGN_OFF)
+    assert proc.returncode == 0, proc.stderr
+
+
+@needs_sh
+def test_msg_hook_requires_the_sign_off_to_name_the_owner(tmp_path):
+    proc = run_msg_hook(tmp_path,
+                        "docs: add a note\n\nSigned-off-by: Someone Else <else@example.invalid>\n")
+    assert proc.returncode == 1
+    assert "does not name the owner" in proc.stderr
+    assert f"Signed-off-by: {OWNER} <{OWNER_MAIL}>" in proc.stderr
+
+
+@needs_sh
+def test_msg_hook_keeps_its_existing_rules(tmp_path):
+    # The grammar, the 72-character ceiling, the missing sign-off and the
+    # merge exemption all predate the attribution rules and must survive them.
+    assert run_msg_hook(tmp_path, "add a note\n\n" + SIGN_OFF).returncode == 1
+    assert "want: type(optional-scope): subject" in run_msg_hook(
+        tmp_path, "add a note\n\n" + SIGN_OFF).stderr
+    long_subject = "docs: " + "x" * 70
+    assert "the ceiling is 72" in run_msg_hook(tmp_path, long_subject + "\n\n" + SIGN_OFF).stderr
+    assert "Missing DCO sign-off" in run_msg_hook(tmp_path, "docs: add a note\n").stderr
+    assert run_msg_hook(tmp_path, "Merge branch 'main'\n").returncode == 0
 
 
 # ---------------------------------------------------------------------------

@@ -12,7 +12,7 @@ doi: 10.1007/978-3-319-24574-4_28
 arxiv: '1505.04597'
 url: https://arxiv.org/abs/1505.04597
 tracks:
-  - T01
+  - Medical Imaging
 tags:
   - domain/medical-imaging
   - task/segmentation
@@ -120,11 +120,11 @@ Three, all microscopy, from two ISBI challenges:
   partially annotated training images. Same challenge.
 
 No dataset cards exist for these yet, so this note deliberately carries no
-`datasets:` frontmatter key — RD24 requires the card to exist before the
-reference does, and a reference to a card that is not there is a broken claim
-about provenance rather than a placeholder. The EM stack and the cell-tracking
-sequences are both openly downloadable, so the cards are cheap when `datasets/`
-gets its first real file (RD18).
+`datasets:` frontmatter key — a reference to a dataset card that has not been
+written is a broken claim about provenance rather than a placeholder, so there
+is no link here yet. The EM stack and the cell-tracking sequences are both
+openly downloadable, so the cards are cheap to write whenever the first one is
+actually needed.
 
 ## Results
 
@@ -212,9 +212,10 @@ overlap-tile workaround; GPU memory caps the tile size.
 ## Reproducibility
 
 - **Code available:** yes. The original Caffe implementation and the trained
-  challenge networks were published by the Freiburg group at the project page in
-  `code:`. In practice nobody uses it; every framework has a faithful
-  reimplementation and the architecture is short enough to type out.
+  challenge networks were published by the Freiburg group at the project page,
+  <https://lmb.informatik.uni-freiburg.de/people/ronneber/u-net/>. In practice
+  nobody uses it; every framework has a faithful reimplementation and the
+  architecture is short enough to type out.
 - **Weights available:** yes, originally, for the challenge models, in Caffe-era
   format. Expect to retrain rather than load.
 - **Compute reported:** yes, and unusually plainly: about 10 hours on one

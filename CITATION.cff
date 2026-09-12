@@ -1,14 +1,14 @@
 cff-version: 1.2.0
 message: >-
-  If you use these summaries, reproductions or tools, please cite the
-  repository. If you are citing a paper I summarised, cite the paper — the
+  If you use these summaries or the tool in this repository, please cite the
+  repository. If you are citing a paper I summarised, cite the paper - the
   summary is my reading of it, not a source for its claims.
 title: "research-notebook"
 abstract: >-
-  A public research notebook: paper summaries written in my own words,
-  reproductions of published results, reading lists and small tools, across
+  A public research notebook: paper summaries written in my own words, across
   medical imaging, computer vision, foundation models, multimodal AI, AI
-  systems and machine-learning theory.
+  systems and machine-learning theory, together with the copyright guard that
+  checks what may be published here.
 type: software
 authors:
   - given-names: Mahmoud
@@ -26,12 +26,19 @@ authors:
     # orcid: "https://orcid.org/XXXX-XXXX-XXXX-XXXX"
 repository-code: "https://github.com/ma7moudalysalem/research-notebook"
 url: "https://github.com/ma7moudalysalem/research-notebook"
-license: MIT
+# Two licences, because this repository is two kinds of thing: the prose is
+# CC BY 4.0 and the code is MIT, as COPYRIGHT.md sets out. A bare
+# `license: MIT` told a citation manager that the summaries were MIT-licensed,
+# which they are not. CFF cannot bind a licence to a path, so the trade is that
+# a reader sees both identifiers and has to open license-url to learn which
+# applies where.
+license:
+  - CC-BY-4.0
+  - MIT
 license-url: "https://github.com/ma7moudalysalem/research-notebook/blob/main/COPYRIGHT.md"
 keywords:
   - machine learning
   - medical imaging
   - computer vision
   - foundation models
-  - reproducibility
   - literature review

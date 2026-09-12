@@ -20,8 +20,8 @@ venue_type: conference
 arxiv: '2010.11929'
 url: https://arxiv.org/abs/2010.11929
 tracks:
-  - T02
-  - T03
+  - Computer Vision
+  - Foundation Models
 tags:
   - domain/computer-vision
   - domain/foundation-models
@@ -117,11 +117,11 @@ Evaluation: ImageNet, ImageNet ReaL, CIFAR-10 and CIFAR-100, Oxford-IIIT Pets,
 Oxford Flowers-102, and the 19-task VTAB suite.
 
 No dataset cards exist for any of these yet, so this note carries no `datasets:`
-frontmatter key — RD24 wants the card to exist before the reference does. Note
-also that JFT-300M can never have a card in the RD24 sense: its access tier is
-effectively `private`, its redistribution is not merely `unverified` but
-inapplicable, and there is no licence excerpt to quote because there is no
-public licence. That is not a filing inconvenience, it is the paper's central
+frontmatter key — a reference to a dataset card that has not been written is a
+broken claim about provenance. Note also what a card for JFT-300M would have to
+say: access effectively private, redistribution not merely unverified but
+inapplicable, and no licence excerpt to quote because there is no public
+licence. That is not a filing inconvenience, it is the paper's central
 scientific problem, and it is written up under Limitations.
 
 ## Results
