@@ -42,9 +42,15 @@ than an omission: **a directory is created when it holds its first real file**,
 so nothing here is an empty folder promising something. Unlinked means it does
 not exist; when it does, it will be a link.
 
-Tracks: medical imaging · computer vision · foundation models · multimodal ·
-AI systems · ML theory. Six, held at equal depth on purpose — the thesis topic
-is not locked yet, and pretending otherwise would be a worse kind of tidy.
+Six tracks, held at equal depth on purpose — the thesis topic is not locked
+yet, and pretending otherwise would be a worse kind of tidy. One summary each,
+so far, which is the cheapest way to let you check that the claim is real:
+[medical imaging](summaries/01-medical-imaging/ronneberger2015unet.md) ·
+[computer vision](summaries/02-computer-vision/dosovitskiy2021vit.md) ·
+[foundation models](summaries/03-foundation-models/vaswani2017attention.md) ·
+[multimodal](summaries/04-multimodal/radford2021clip.md) ·
+[AI systems](summaries/05-ai-systems/dao2022flashattention.md) ·
+[ML theory](summaries/06-ml-theory/zhang2017rethinking.md).
 
 ---
 

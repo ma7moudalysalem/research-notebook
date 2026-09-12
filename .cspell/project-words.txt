@@ -47,6 +47,13 @@ sublayers
 tokeniser
 asymptotics
 micrometastasis
+Rademacher
+bicubically
+convnets
+epistemics
+microbenchmarks
+regularisers
+unet
 # --- datasets and benchmarks named in summaries ---
 Camelyon
 GTSRB
@@ -58,12 +65,19 @@ newstest
 GNMT
 LSTM
 VIRT
+CIFAR
+ILSVRC
+ISBI
 # --- people and venues cited in prose rather than in frontmatter ---
 Keshav
 SIGCOMM
 Anson
 Zhang
 Biomed
+CVPR
+Gimelshein
+IDSIA
+Milakov
 # --- this repository's own vocabulary ---
 ckpt
 ipynb
@@ -75,3 +89,8 @@ Irreproducibility
 fundable
 paediatric
 Mahmoud
+CUDA
+Caffe
+DICOM
+astrocytoma
+polyacrylamide
