@@ -59,6 +59,9 @@ __pycache__/
 site/
 .cache/
 .lycheecache
+# Jekyll's output and its incremental cache: the site is built in CI, never committed.
+_site/
+.jekyll-cache/
 
 # ---- OS and editor ----------------------------------------------------------
 Thumbs.db

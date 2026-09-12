@@ -1,0 +1,13 @@
+---
+layout: default
+---
+<!--
+  The layout for docs/: a title and the document, and deliberately nothing
+  else. These pages explain how the repository works; a sidebar, a table of
+  contents or a set of related links would be four more things to keep true
+  every time the repository changes, and each of them is a claim that can go
+  stale on its own. The title is printed only when the frontmatter carries one,
+  so a document that opens with its own heading is not given a second.
+-->
+{% if page.title %}<h1>{{ page.title | escape }}</h1>{% endif %}
+{{ content }}

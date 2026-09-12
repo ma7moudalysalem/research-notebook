@@ -1,0 +1,58 @@
+<!--
+  The front page's list of summaries, generated from the summaries themselves.
+
+  It lives here rather than inline in index.md for one practical reason. CI runs
+  markdownlint over every .md file in the repository, and it reads those files as
+  markdown source, before Liquid has run. A template loop that emits markdown
+  puts a heading directly under a loop line and a list item directly under an
+  assignment line, and both of those are blank-line violations in the source even
+  though the built page is perfectly well formed. The choice was between turning
+  those rules off for the front page and moving the generated markup into a file
+  the markdown linter does not read. Turning off a check to make a file pass is
+  the wrong half of that trade, so the loop moved here instead.
+
+  It emits HTML rather than markdown, because that is what an include dropped
+  into a kramdown page passes through untouched.
+
+  There is no hard-coded list here and there must never be one: the loop reads
+  site.pages, so a seventh summary appears on the front page the moment its file
+  lands, with nothing else to edit. A summary whose frontmatter names two tracks
+  is listed under both, on purpose - a reader arriving by track should find it
+  wherever they looked, and a paper that genuinely sits across two fields is not
+  made tidier by pretending it sits in one.
+
+  One consequence worth knowing. The count comes from the summaries, the headings
+  come from their `tracks` keys, so a summary that somehow arrived without that
+  key would be counted and then listed nowhere, and the two numbers on the page
+  would visibly disagree. That is deliberate: the repair is the missing key in
+  the summary, not a catch-all heading here that would hide it.
+-->
+{%- assign summaries = site.pages | where_exp: "p", "p.path contains 'summaries/'" -%}
+{%- assign track_list = "" -%}
+{%- for s in summaries -%}
+  {%- for t in s.tracks -%}
+    {%- assign track_list = track_list | append: t | append: "|" -%}
+  {%- endfor -%}
+{%- endfor -%}
+{%- assign tracks = track_list | split: "|" | uniq | sort_natural -%}
+{%- assign total = summaries | size %}
+
+<div class="paper-index">
+  <p class="count">
+    {{ total }} paper{% if total != 1 %}s{% endif %}, grouped by track and
+    oldest first inside each one.
+  </p>
+
+  {% for track in tracks %}
+  {%- assign in_track = summaries | where_exp: "p", "p.tracks contains track" | sort: "year" -%}
+  <h3 id="track-{{ track | slugify }}">{{ track | escape }}</h3>
+  <ul>
+    {%- for s in in_track %}
+    <li>
+      <a href="{{ s.url | relative_url }}">{{ s.title | escape }}</a>
+      <span class="meta">{{ s.authors | join: ', ' | escape }}. {{ s.venue | escape }} {{ s.year }}.</span>
+    </li>
+    {%- endfor %}
+  </ul>
+  {% endfor %}
+</div>

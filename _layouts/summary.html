@@ -1,0 +1,86 @@
+---
+layout: default
+---
+<!--
+  A summary page.
+
+  The masthead is built entirely from the page's own frontmatter, so it cannot
+  disagree with the file it sits on top of. It says four things before any of
+  the writing: that this is a reading of somebody else's paper, whose paper it
+  is, where and when they published it, and where to go and read the original.
+
+  A reader who lands here from a search result has to be able to tell in one
+  glance that they are not looking at the paper. Getting that wrong is the one
+  failure mode of a notebook like this that actually matters, so the label goes
+  above the title rather than below it.
+
+  The summary file also ends with its own source-and-attribution block, written
+  in markdown and visible when the file is read in the repository. That block,
+  not this masthead, is the authoritative statement. The masthead repeats part
+  of it because a reader who does not scroll to the end still needs the fact.
+
+  Note for anyone editing the frontmatter: Jekyll defines page.url itself, so
+  the `url` key a summary carries is shadowed here and cannot be read from a
+  template. The DOI and the arXiv identifier are read instead, and the links
+  below are built from them.
+-->
+{%- assign opening = content | strip | slice: 0, 3 -%}
+{%- assign body = content -%}
+{%- if opening == '<h1' -%}
+  {%- comment -%}
+    The markdown file opens with its own H1, because it has to stand up as a
+    file in the repository as well as a page here. The masthead already prints
+    that title from the frontmatter, so the leading heading is dropped rather
+    than shown twice. Only the FIRST one goes, and only when the document
+    actually starts with it: a summary that opens some other way passes through
+    untouched, which is the safe way round. The cost is one extra step in the
+    template; the alternative was hiding the duplicate with a stylesheet rule,
+    which puts text on the page that nobody can see and that no reader asked
+    for.
+  {%- endcomment -%}
+  {%- assign first_heading = content | split: '</h1>' | first -%}
+  {%- assign body = content | remove_first: first_heading | remove_first: '</h1>' -%}
+{%- endif -%}
+
+<article class="summary">
+  <header class="masthead">
+    <p class="kind">My reading of a paper by other people</p>
+
+    <h1>{{ page.title | escape }}</h1>
+
+    {% if page.authors %}<p class="authors">{{ page.authors | join: ', ' | escape }}</p>{% endif %}
+
+    {% if page.venue or page.year %}
+    <p class="venue">
+      {{- page.venue | escape }} {{ page.year }}
+      {%- if page.venue_type %} ({{ page.venue_type | escape }}){% endif -%}
+    </p>
+    {% endif %}
+
+    {% if page.tracks %}
+    <p class="tracks">
+      {% if page.tracks.size > 1 %}Tracks{% else %}Track{% endif %}:
+      {{ page.tracks | join: ', ' | escape }}
+    </p>
+    {% endif %}
+
+    {% if page.doi or page.arxiv %}
+    <p class="original">
+      The paper itself:
+      {%- if page.doi %} <a href="https://doi.org/{{ page.doi }}">doi:{{ page.doi }}</a>{% endif %}
+      {%- if page.doi and page.arxiv %} and{% endif %}
+      {%- if page.arxiv %} <a href="https://arxiv.org/abs/{{ page.arxiv }}">arXiv:{{ page.arxiv }}</a>{% endif -%}
+      .
+    </p>
+    {% endif %}
+  </header>
+
+  <p class="standing">
+    What follows is mine: my words, my reading, and my mistakes where I have
+    made them. It is not the authors' text, and no passage, table or figure of
+    the paper is reproduced. If you want to know what the paper says, the links
+    above go to it.
+  </p>
+
+  {{ body }}
+</article>

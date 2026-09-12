@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="{{ site.lang | default: 'en' }}">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>{% if page.title %}{{ page.title | escape }} - {{ site.title | escape }}{% else %}{{ site.title | escape }}{% endif %}</title>
+    <meta name="description" content="{{ page.description | default: site.description | strip_newlines | strip_html | escape }}">
+    <link rel="canonical" href="{{ page.url | absolute_url }}">
+
+    <!--
+      Everything this page needs is served from this repository: one stylesheet,
+      no web font, no script, no analytics, no image from anywhere else.
+
+      Two reasons, and both of them are worth the plainness that follows.
+
+      A reader should not be tracked for reading a paper summary. A font from a
+      font host or a script from an analytics vendor sends that reader's address
+      and page to a third party who was never asked, and this repository has no
+      business collecting that.
+
+      And a page with no third-party request cannot break when somebody else's
+      network does. The site has no build-time dependency beyond Jekyll and no
+      run-time dependency at all, so the failure modes are the ones in this
+      repository rather than the ones in someone else's.
+
+      What it costs: no typeface of its own, no search box, no comment thread,
+      no usage figures. The system font stack means the site looks slightly
+      different on every machine. That is an acceptable price for a page whose
+      whole job is to be read.
+    -->
+    <link rel="stylesheet" href="{{ '/assets/css/site.css' | relative_url }}">
+  </head>
+
+  <body>
+    <a class="skip" href="#content">Skip to the content</a>
+
+    <header class="site-header">
+      <div class="wrap">
+        <a class="home" href="{{ '/' | relative_url }}">{{ site.title | escape }}</a>
+        <span class="byline">{{ site.author | escape }}</span>
+      </div>
+    </header>
+
+    <main id="content">
+      <div class="wrap">
+        {{ content }}
+      </div>
+    </main>
+
+    <footer class="site-footer">
+      <div class="wrap">
+        <p>
+          The prose on this site is licensed
+          <a href="{{ site.repository_url }}/blob/main/LICENSES/CC-BY-4.0.txt">CC BY 4.0</a>
+          and the code in the repository is
+          <a href="{{ site.repository_url }}/blob/main/LICENSE">MIT</a>.
+          Two licences because they are two different things, and one licence
+          over both would have been wrong for one of them.
+          <a href="{{ site.repository_url }}/blob/main/COPYRIGHT.md">COPYRIGHT.md</a>
+          holds the authoritative map from path to licence, and says what is not
+          mine to license at all.
+        </p>
+        <p>
+          Every summary here is my reading of a paper, not the paper. Credit for
+          the work belongs to the authors each page names.
+        </p>
+        <p>
+          Built from <a href="{{ site.repository_url }}">{{ site.repository_url }}</a>.
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>

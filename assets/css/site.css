@@ -1,0 +1,301 @@
+/* ---------------------------------------------------------------------------
+ * research-notebook - the whole style sheet.
+ *
+ * One file, hand-written, served from this repository. No framework, no reset,
+ * no web font. The trade is real: a framework would have given a grid and a
+ * component set for free, and this has neither. What it buys is that the page
+ * has no third-party request in it at all, so nobody is tracked for reading a
+ * paper summary and no outage anywhere else can break the site.
+ *
+ * The measure is deliberately narrow. These pages are long-form reading, and a
+ * line that runs the width of a desktop monitor is measurably harder to track
+ * back to the start of.
+ * ------------------------------------------------------------------------- */
+
+:root {
+  color-scheme: light dark;
+
+  --measure: 68ch;
+
+  --bg: #fcfcfa;
+  --panel: #f2f1ec;
+  --ink: #1c1c1a;
+  --ink-soft: #57564f;
+  --rule: #dedcd4;
+  --link: #17457d;
+  --link-visited: #5a3d78;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #14151a;
+    --panel: #1d1f26;
+    --ink: #e6e5e0;
+    --ink-soft: #a4a39c;
+    --rule: #32343d;
+    --link: #90bbf0;
+    --link-visited: #c3a8e0;
+  }
+}
+
+html {
+  font-size: 106.25%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+  line-height: 1.68;
+  text-rendering: optimizeLegibility;
+  -webkit-text-size-adjust: 100%;
+}
+
+a {
+  color: var(--link);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.14em;
+}
+
+a:visited {
+  color: var(--link-visited);
+}
+
+/* Keyboard users get the first link on the page, and nobody else sees it. */
+.skip {
+  position: absolute;
+  left: -9999px;
+}
+
+.skip:focus {
+  left: 0.5rem;
+  top: 0.5rem;
+  z-index: 2;
+  background: var(--panel);
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+}
+
+.wrap {
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 0 1.25rem;
+}
+
+/* ---- header and footer ---------------------------------------------------- */
+
+.site-header {
+  border-bottom: 1px solid var(--rule);
+  padding: 1.1rem 0;
+}
+
+.site-header .wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.site-header .home {
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.site-header .home:hover,
+.site-header .home:focus {
+  text-decoration: underline;
+}
+
+.site-header .byline {
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+.site-footer {
+  border-top: 1px solid var(--rule);
+  margin-top: 4rem;
+  padding: 1.5rem 0 3rem;
+  color: var(--ink-soft);
+  font-size: 0.86rem;
+}
+
+.site-footer p {
+  margin: 0 0 0.5rem;
+}
+
+/* ---- prose ---------------------------------------------------------------- */
+
+main {
+  padding-top: 2rem;
+}
+
+h1, h2, h3, h4 {
+  line-height: 1.25;
+  margin: 2.2rem 0 0.7rem;
+  letter-spacing: -0.011em;
+}
+
+h1 {
+  font-size: 1.72rem;
+  margin-top: 0.6rem;
+}
+
+h2 {
+  font-size: 1.24rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--rule);
+}
+
+h3 {
+  font-size: 1.04rem;
+}
+
+p, ul, ol {
+  margin: 0 0 1.05rem;
+}
+
+ul, ol {
+  padding-left: 1.3rem;
+}
+
+li {
+  margin-bottom: 0.4rem;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 2.5rem 0;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.88em;
+  background: var(--panel);
+  padding: 0.1em 0.32em;
+  border-radius: 3px;
+}
+
+blockquote {
+  margin: 0 0 1.05rem;
+  padding-left: 1rem;
+  border-left: 3px solid var(--rule);
+  color: var(--ink-soft);
+}
+
+/* A table wider than the measure scrolls inside itself rather than pushing the
+   page sideways on a phone. */
+.table-scroll {
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  font-size: 0.92rem;
+}
+
+th, td {
+  border: 1px solid var(--rule);
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* ---- the masthead on a summary page --------------------------------------- */
+
+.masthead {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 1.1rem 1.2rem 0.9rem;
+  margin-bottom: 2.2rem;
+}
+
+.masthead h1 {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 1.45rem;
+}
+
+.masthead p {
+  margin: 0 0 0.4rem;
+  font-size: 0.93rem;
+}
+
+.masthead p:last-child {
+  margin-bottom: 0;
+}
+
+.masthead .kind {
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  margin-bottom: 0;
+}
+
+.masthead .authors {
+  color: var(--ink-soft);
+}
+
+.masthead .venue,
+.masthead .tracks {
+  color: var(--ink-soft);
+  font-size: 0.88rem;
+}
+
+.masthead .original {
+  font-size: 0.88rem;
+}
+
+.standing {
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  border-left: 3px solid var(--rule);
+  padding-left: 0.9rem;
+  margin: 0 0 2.2rem;
+}
+
+/* ---- the generated list on the front page --------------------------------- */
+
+.paper-index .count {
+  color: var(--ink-soft);
+  font-size: 0.9rem;
+}
+
+.paper-index h3 {
+  margin-top: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.paper-index ul {
+  list-style: none;
+  padding-left: 0;
+  margin-bottom: 0;
+}
+
+.paper-index li {
+  margin-bottom: 0.9rem;
+}
+
+.paper-index li a {
+  font-weight: 600;
+}
+
+/* The authors, venue and year sit on their own line under the title. A paper
+   with twelve authors would otherwise push the title off the screen on a
+   phone, and the title is the thing being scanned for. */
+.paper-index .meta {
+  display: block;
+  color: var(--ink-soft);
+  font-size: 0.87rem;
+  line-height: 1.5;
+}

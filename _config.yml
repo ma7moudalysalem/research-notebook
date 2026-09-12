@@ -1,0 +1,106 @@
+# ---------------------------------------------------------------------------
+# research-notebook - site configuration.
+#
+# WHY JEKYLL RATHER THAN A SCRIPT THAT WRITES HTML
+#
+# GitHub Pages runs Jekyll natively, so the site is built from the files that
+# are already in this repository and nothing generated is committed. The
+# alternative on the table was a small script that walks summaries/ and writes
+# an index.html next to it. That was rejected for one reason, and it is the
+# reason this file exists at all.
+#
+# Every summary already carries YAML frontmatter - title, authors, year, venue,
+# tracks - because it needs that metadata for citation anyway. Jekyll reads each
+# summary as a page with those keys attached, so the front page can be built by
+# looping over the summaries themselves at build time. A generated index
+# committed beside them would be a second copy of the same facts, and a second
+# copy goes stale the first time a summary is edited and the script is not
+# re-run. There is no second copy here, so there is nothing to forget: adding a
+# seventh summary changes the front page and nothing else has to be touched.
+#
+# What the trade costs: the front page cannot be read as finished HTML in the
+# repository, only as a template, and a broken template is found at build time
+# rather than while writing it. That is the price of the index never lying.
+# ---------------------------------------------------------------------------
+
+title: research-notebook
+description: >-
+  Paper summaries written in my own words, across medical imaging, computer
+  vision, foundation models, multimodal AI, AI systems and machine-learning
+  theory. My reading of the papers, never the papers themselves.
+author: Mahmoud Ali Salem
+lang: en-GB
+
+repository_url: https://github.com/ma7moudalysalem/research-notebook
+
+# The site is served from the repository's own subpath, not from the root of
+# the user site, so every internal link has to carry that prefix. It is written
+# out rather than guessed, and every template uses `relative_url` against it,
+# because a wrong baseurl breaks every link and style sheet on the site at once
+# while each individual page still builds green.
+url: https://ma7moudalysalem.github.io
+baseurl: /research-notebook
+
+# No theme and no remote theme. The layouts in _layouts/ are written by hand and
+# there are three of them, which is less code than the configuration a theme
+# would need. The trade is no free dark mode, no free typography and no free
+# updates; what it buys is that this site has no dependency beyond Jekyll
+# itself, so it cannot be broken by a version bump in something nobody here has
+# read. For the same reason there is no `plugins` list: only the plugins Pages
+# whitelists would run, and relying on that whitelist is relying on someone
+# else's policy staying still.
+
+markdown: kramdown
+kramdown:
+  input: GFM
+  hard_wrap: false
+  # The summaries are long and heavily sectioned. Stable, readable heading ids
+  # make a deep link into one of them survive an edit elsewhere in the file.
+  auto_ids: true
+
+# Layouts are applied from here rather than by editing the frontmatter of the
+# content files. The summaries' frontmatter is citation metadata: it is read by
+# people, by the copyright guard and eventually by a reference manager, and
+# adding a presentation key to each of them puts a fact about this website
+# inside a record about a paper. One rule here does the same job and can
+# be changed in one place.
+#
+# A caveat worth knowing rather than discovering: Jekyll only applies defaults
+# to files that have a frontmatter block at all. The two documents in docs/
+# currently have none, so Jekyll copies them across as-is and the `page` layout
+# below waits for the day one of them gains a frontmatter block. That is why the
+# front page links to those two in the repository, where GitHub renders them,
+# rather than to a path on this site that would serve raw markdown.
+defaults:
+  - scope:
+      path: summaries
+    values:
+      layout: summary
+  - scope:
+      path: docs
+    values:
+      layout: page
+
+# Everything that is not content. Setting this key replaces Jekyll's own default
+# exclude list rather than adding to it, which is safe here because this
+# repository has no Gemfile and no vendor directory; if one ever arrives it must
+# be added below by hand.
+#
+# README.md is excluded deliberately. It is the front door of the repository and
+# says repository things - directory tables, rows marked "not yet", where the
+# checker lives. index.md is the front door of the site and says site things.
+# One file trying to be both would be worse at each.
+exclude:
+  - tools/
+  - scripts/
+  - .githooks/
+  - .github/
+  - .cspell/
+  - LICENSES/
+  - lychee.toml
+  - cspell.config.yaml
+  - .markdownlint-cli2.jsonc
+  - CITATION.cff
+  - .editorconfig
+  - .gitattributes
+  - README.md

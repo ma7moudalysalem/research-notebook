@@ -1,0 +1,95 @@
+# Builds the site and publishes it to GitHub Pages.
+#
+# WHY ACTIONS IS THE PAGES SOURCE RATHER THAN A BRANCH
+#
+# The other option is the default: point Pages at a branch and let GitHub build
+# it. That runs a `pages-build-deployment` job that this repository does not
+# own, cannot pin, cannot read the configuration of, and cannot change. It is
+# attributed to `github-pages[bot]` in the deployment list, and its version of
+# Jekyll moves when GitHub decides it moves.
+#
+# None of that is acceptable here. This repository's whole claim is that
+# everything it publishes can be inspected and is one person's work: the copyright
+# guard runs from main against every pull request, every action below is pinned
+# to a commit, and the history refuses a bot author. A publishing step nobody
+# can read would be the one hole in that. With Actions as the source, the build
+# is this file: the run appears in this repository's own Actions tab next to the
+# quality and copyright runs, its log is readable by anyone, and when it breaks
+# it says why.
+#
+# It runs on pushes to main rather than on pull requests, so it is not a merge
+# gate and it is not in the main ruleset's list of required checks. Publishing
+# is what happens after a change is accepted, and a site that failed to deploy
+# should not be able to hold up a correction to a summary.
+#
+# The trade is that this file now has to be maintained: five pinned actions to
+# refresh by hand, and a build that can fail on its own rather than silently
+# doing whatever GitHub's builder does. That is the correct side of the trade
+# for a repository whose subject is being open to checking.
+#
+# Every `uses:` is pinned to a commit with the version it was at in a trailing
+# comment, for the reason set out at the top of quality.yml: a tag is a movable
+# label and a commit is not. Same rule here, same refresh-by-hand policy, no
+# update bot, because a bot in the commit list is not what this repository
+# claims to be.
+#
+# Pins last reviewed: 2026-09-13.
+name: pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# Read the repository, write a Pages deployment, and mint the OIDC token
+# deploy-pages exchanges for permission to publish. Nothing else - in
+# particular no write access to the repository contents, because the build
+# never commits anything: the site is generated into the runner's filesystem
+# and uploaded from there.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time. Two pushes landing close together would otherwise
+# race, and the site would end up showing whichever build happened to finish
+# last rather than whichever commit is newest.
+#
+# `cancel-in-progress: false` on purpose, which is the opposite of the setting
+# in quality.yml. There, cancelling a superseded run saves a runner and costs
+# nothing. Here, a cancelled run can leave a half-published deployment, so the
+# second push waits for the first to finish instead.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+
+      - uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+
+      # `static_site_generator` is deliberately not set. It would have this
+      # step write the base path into a generated config, which is convenient
+      # and would also mean the site's baseurl lives in two places. It is set
+      # once, in _config.yml, where someone reading the repository can find it.
+      - uses: actions/jekyll-build-pages@44a6e6beabd48582f863aeeb6cb2151cc1716697 # v1.0.13
+        with:
+          source: ./
+          destination: ./_site
+
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
+        with:
+          path: ./_site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1
