@@ -62,17 +62,28 @@ jobs:
         with:
           args: "--validate"
 
+  # The job id is kept as `tools-parity` because the main ruleset requires a
+  # status check by exactly that name, pinned to this integration; renaming
+  # the job and the ruleset entry cannot be done atomically, and a required
+  # check that never reports blocks every merge. What the job DOES has changed.
+  #
+  # It used to assert parity between a mirrored toolbox and its private source,
+  # and short-circuit to a green `echo` when the mirror was absent — which it
+  # always was. An audit called that out: a required check that is structurally
+  # incapable of failing is a false reading on every pull request. It now runs
+  # the public toolbox's own test suite, and fails loudly if there is no
+  # toolbox to test.
   tools-parity:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
       - uses: actions/setup-python@v5
         with: { python-version: '3.13' }
-      - name: The mirrored toolbox has not forked
+      - name: The public toolbox exists and its tests pass
         run: |
-          if [ -f tools/sync_public_tools.py ]; then
-            pip install PyYAML jsonschema
-            python tools/sync_public_tools.py --check
-          else
-            echo "toolbox mirror not yet published; nothing to check"
+          if [ ! -d tools/tests ]; then
+            echo "::error title=No public toolbox::tools/tests/ is absent, so this check would be asserting nothing"
+            exit 1
           fi
+          pip install --quiet pytest
+          python -m pytest tools/tests -q

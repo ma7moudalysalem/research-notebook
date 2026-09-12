@@ -1,12 +1,32 @@
-# A REQUIRED status check in the main ruleset, and never skippable.
+# A REQUIRED status check in the main ruleset, pinned to the GitHub Actions
+# integration so no other installed app can satisfy it by publishing a status
+# with the same name.
 #
 # This is layer three of three (RD02): .gitignore, the pre-commit hook, then
 # this. The hook can be bypassed with --no-verify and does not run in GitHub's
-# web editor at all; this runs regardless of how the commit was made.
+# web editor at all; this runs however the commit was made.
+#
+# Rewritten twice after adversarial audits. The first found that the previous
+# version could be walked past by a publisher PDF named paper.PDF, a PDF with
+# no extension, a screenshot placed anywhere except assets/figures/, a notebook
+# whose filename contained a space, and a 300-word quotation pasted in the web
+# editor. The second found the structural hole underneath all of those: the
+# guard ran from the pull request's own checkout, so the pull request could
+# replace the checker with `sys.exit(0)` and judge itself. Every fixture from
+# both audits is a regression test in tools/tests/test_check_copyright.py.
 name: copyright
 
+# pull_request_target, not pull_request: this file is taken from main, not from
+# the pull request, so a PR cannot add `if: false` to the job below and have a
+# skipped required check read as satisfied.
+#
+# That trigger is the classic route to a compromised runner when a workflow
+# holds secrets or write permission and checks out untrusted code. This one
+# holds neither - `contents: read`, no secrets - and it never executes anything
+# from the pull request: the checker it runs is main's copy, and the PR's tree
+# is only ever READ, from a second directory, as data.
 on:
-  pull_request:
+  pull_request_target:
     branches: [main]
   push:
     branches: [main]
@@ -18,47 +38,51 @@ permissions:
 jobs:
   guard:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
+      # THE JUDGE. Checked out from the base branch into its own directory.
+      # On a pull request this is main; on push and dispatch it is the pushed
+      # commit, which is main by construction. The checker and its tests come
+      # from here and only from here. Pinned to a commit rather than a tag,
+      # because this step populates the code every later step trusts.
+      - name: Check out the guard from the base branch
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          path: judge
+          fetch-depth: 1
 
-      - name: No third-party PDF
-        run: |
-          found=$(git ls-files '*.pdf' | grep -v '^assets/figures/' || true)
-          if [ -n "$found" ]; then
-            echo "::error title=Third-party PDF::$found"
-            exit 1
-          fi
+      # THE JUDGED. The pull request's tree, or the pushed commit, in a
+      # separate directory. Nothing in it is executed. fetch-depth 0 so the
+      # self-edit rules can diff against the base ref.
+      - name: Check out the tree under review
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+          path: tree
+          fetch-depth: 0
 
-      - name: Every figure declares its provenance
-        run: |
-          fail=0
-          for f in $(git ls-files 'assets/figures/*' | grep -viE '\.source\.ya?ml$' || true); do
-            src="${f%.*}.source.yml"
-            if [ ! -f "$src" ]; then
-              echo "::error file=$f,title=No provenance::$f has no $src (COPYRIGHT.md#figures)"
-              fail=1
-            fi
-          done
-          exit $fail
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
 
-      - name: Every summary attributes its source
+      # The judge proves it works before it judges anything. If a change to
+      # main ever broke the checker, this is where it surfaces - on every PR,
+      # first, rather than as a green guard that asserts nothing.
+      - name: Guard self-test
+        working-directory: judge
         run: |
-          fail=0
-          for f in $(git ls-files 'summaries/*.md' || true); do
-            grep -q '^## Source and attribution' "$f" || {
-              echo "::error file=$f,title=No attribution::missing '## Source and attribution'"
-              fail=1
-            }
-          done
-          exit $fail
+          pip install --quiet pytest
+          python -m pytest tools/tests/test_check_copyright.py -q
 
-      - name: No notebook outputs
-        run: |
-          fail=0
-          for f in $(git ls-files '*.ipynb' || true); do
-            if grep -qE '"(output_type|image/png|image/jpeg)"' "$f"; then
-              echo "::error file=$f,title=Notebook outputs::a rendered cell is the likeliest figure or path leak"
-              fail=1
-            fi
-          done
-          exit $fail
+      # main's checker, run with the PR's tree as its working directory. The
+      # checker enumerates files with `git ls-files` from cwd, so it examines
+      # exactly what would merge, using code the pull request cannot touch.
+      # GITHUB_BASE_REF is set on pull_request_target, which enables the
+      # self-edit rules; `origin` in the tree directory is this repository,
+      # so the base ref is fetchable.
+      - name: Copyright guard
+        working-directory: tree
+        env:
+          GITHUB_BASE_REF: ${{ github.base_ref }}
+        run: python ../judge/tools/check_copyright.py --all
