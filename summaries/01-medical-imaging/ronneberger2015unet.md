@@ -264,4 +264,4 @@ overlap-tile workaround; GPU memory caps the tile size.
 
 The summary above is my own words, written from reading the paper. It is not the authors' abstract, it is not a translation of one, and no figure, table or passage of the original is reproduced here. Credit for the work belongs to the authors listed above; go and read them.
 
-Citekey `ronneberger2015unet`. Prose here is CC BY 4.0 — see [`summaries/LICENSE`](../LICENSE), and [`COPYRIGHT.md`](../../COPYRIGHT.md) for the authoritative path-to-licence map.
+Citekey `ronneberger2015unet`. Prose here is CC BY 4.0 and the code in this repository is MIT; [`COPYRIGHT.md`](../../COPYRIGHT.md) is the authoritative path-to-licence map, and the `summaries/LICENSE` marker repeats it for this directory.

@@ -83,4 +83,63 @@ layout: default
   </p>
 
   {{ body }}
+
+  <!--
+    A way out of the page, built from the summaries themselves.
+
+    Without this a reader who arrives from a search result can read one summary
+    and then has nowhere to go: the prose deliberately carries no links to the
+    other papers, because the sentences that connect them live in the private
+    sections of the source note and are stripped before anything is published.
+    That stripping is right - those sections say what I intend to do next - but
+    it leaves the published pages with no threads between them at all.
+
+    So the threads are generated instead of written. Same track first, because
+    two papers filed under one track are the ones most likely to be read
+    together; then everything else, so the whole notebook is always one click
+    away. Nothing here is hand-maintained, and a seventh summary joins these
+    lists the moment its file lands.
+  -->
+  {%- assign siblings = site.pages
+        | where_exp: "p", "p.path contains 'summaries/'"
+        | where_exp: "p", "p.url != page.url" -%}
+  {%- if siblings.size > 0 %}
+  <nav class="keep-reading">
+    <h2>Keep reading</h2>
+    {%- assign same_track = "" -%}
+    {%- for t in page.tracks -%}
+      {%- assign in_track = siblings | where_exp: "p", "p.tracks contains t" -%}
+      {%- for s in in_track -%}
+        {%- assign same_track = same_track | append: s.url | append: "|" -%}
+      {%- endfor -%}
+    {%- endfor -%}
+    {%- assign same_track_urls = same_track | split: "|" | uniq -%}
+
+    {%- if same_track_urls.size > 0 %}
+    <p class="also">Also in {{ page.tracks | join: " and " | escape }}:</p>
+    <ul>
+      {%- for s in siblings -%}
+        {%- if same_track_urls contains s.url %}
+      <li>
+        <a href="{{ s.url | relative_url }}">{{ s.title | escape }}</a>
+        <span class="meta">{{ s.venue | escape }} {{ s.year }}</span>
+      </li>
+        {%- endif -%}
+      {%- endfor %}
+    </ul>
+    {%- endif %}
+
+    <p class="elsewhere">
+      {%- assign rest = siblings | sort: "year" -%}
+      Elsewhere in the notebook:
+      {% for s in rest -%}
+        {%- unless same_track_urls contains s.url -%}
+        <a href="{{ s.url | relative_url }}">{{ s.title | truncate: 44 | escape }}</a>{% unless forloop.last %}, {% endunless %}
+        {%- endunless -%}
+      {%- endfor %}
+    </p>
+
+    <p class="all"><a href="{{ '/' | relative_url }}">All {{ site.pages | where_exp: "p", "p.path contains 'summaries/'" | size }} summaries</a></p>
+  </nav>
+  {%- endif %}
 </article>

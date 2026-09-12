@@ -79,6 +79,9 @@ Gimelshein
 IDSIA
 Milakov
 # --- this repository's own vocabulary ---
+Liquid
+kramdown
+forloop
 waivable
 sublicensable
 sciencedirect

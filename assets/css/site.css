@@ -299,3 +299,25 @@ img {
   font-size: 0.87rem;
   line-height: 1.5;
 }
+
+/* ---------------------------------------------------------------------------
+   Keep reading — the generated links out of a summary page.
+
+   Quiet on purpose. It sits after the attribution block, which is the last
+   thing a reader should take seriously on the page, so it is styled as
+   navigation rather than as more content: smaller, set apart by a rule, and
+   with the paper titles as the only emphasis.
+   --------------------------------------------------------------------------- */
+.keep-reading {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule, #d8d8d8);
+  font-size: 0.94rem;
+}
+.keep-reading h2 { font-size: 1rem; margin: 0 0 0.75rem; letter-spacing: 0.02em; }
+.keep-reading p.also,
+.keep-reading p.elsewhere { margin: 0.75rem 0 0.4rem; }
+.keep-reading ul { margin: 0.25rem 0 0; padding-left: 1.2rem; }
+.keep-reading li { margin: 0.3rem 0; }
+.keep-reading .meta { color: var(--muted, #666); font-size: 0.88em; }
+.keep-reading p.all { margin-top: 1rem; }

@@ -44,11 +44,18 @@ over a set of pages that each argue their own case in their own order, because a
 notebook is meant to be read across, not one page at a time.
 
 The rules, the two gates a summary passes before it appears, and the things this
-repository deliberately does not contain are written up in the repository
-itself: [how this repository works][docs-00] and [what is not here][docs-02].
-Those two point at the copies in the repository rather than at a page on this
-site. GitHub renders them there today, and the alternative would be a link that
-quietly hands the reader raw markdown.
+repository deliberately does not contain are written up in
+[how this repository works](docs/00-how-this-repo-works.md) and
+[what is not here](docs/02-what-is-not-here.md).
 
-[docs-00]: https://github.com/ma7moudalysalem/research-notebook/blob/main/docs/00-how-this-repo-works.md
-[docs-02]: https://github.com/ma7moudalysalem/research-notebook/blob/main/docs/02-what-is-not-here.md
+<!--
+  Those two are written as plain relative links to the markdown files, and that
+  one detail makes them work in both places at once. On this site Jekyll
+  rewrites a relative `.md` link to the page it built, so the reader stays here.
+  In the repository the same link opens the file itself. Writing them as
+  absolute GitHub URLs instead would have sent a reader of the site back out to
+  the repository for a page the site already renders, and writing them as
+  `{{ ... | relative_url }}` would have hidden the target from the link checker
+  that runs on every change, which reads this file as markdown before any
+  template has run.
+-->
