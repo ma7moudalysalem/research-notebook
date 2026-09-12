@@ -38,20 +38,6 @@ tags:
 
 # Learning Transferable Visual Models From Natural Language Supervision
 
-<!-- READING PROTOCOL. Three passes, after Keshav, *How to Read a Paper*
-     (ACM SIGCOMM CCR 37(3), 2007). Pass 1 is five minutes: title, abstract,
-     headings, conclusions - enough to decide whether to continue. Pass 2 is an
-     hour: figures, tables, and the argument, skipping proofs. Pass 3 is a
-     re-implementation in your head, questioning every assumption.
-
-     Fill the sections as the passes happen. `status: read` is only legal once
-     TL;DR, Method, Results, Limitations and Questions are all genuinely
-     written (RD13) - the checker enforces it, and "TODO" does not count.
-
-     This is an HTML comment rather than a blockquote on purpose: it is
-     instruction to the author, not content. As a blockquote it counted as an
-     87-word quotation and made every single promotion refuse. -->
-
 ## TL;DR
 
 Train an image encoder and a text encoder jointly, on 400 million image-text
@@ -61,24 +47,6 @@ classifier by *writing down the class names as sentences*, so the label set is
 chosen at inference rather than baked into the weights. The headline is that
 this matches a supervised ImageNet ResNet-50 on ImageNet without touching its
 1.28M labels; the more useful finding, for me, is precisely where it fails.
-
-## Why I am reading this
-
-Because if the thesis goes anywhere near medical vision-language — scans paired
-with radiology reports — this is the paper everything is measured against, and
-every medical variant (ConVIRT, GLoRIA, BioViL, MedCLIP, BiomedCLIP) is a
-reaction to it. Two specific things I wanted: the actual failure profile on
-specialised imagery, because that is the honest prior for a medical
-application; and the data-scale numbers, because "400 million pairs" and "a
-hospital's report archive" are not the same order of magnitude and I need to
-know how the method degrades between them.
-
-A detail worth carrying: the paper names ConVIRT (Zhang et al., a chest X-ray
-image-text contrastive method) as its closest prior work and describes its own
-approach as a simplified version of it trained from scratch. The medical version
-came *first*. That reframes the medical literature from "applying CLIP to
-medicine" to "CLIP is the scaled-up version of a medical idea", which is a much
-better sentence to have in a proposal.
 
 ## Contributions
 
@@ -122,11 +90,11 @@ and this is the single most consequential fact in the paper.
 modernisations plus attention pooling in place of global average pooling
 (RN50, RN101, and RN50x4/x16/x64 scaled EfficientNet-style in width, depth and
 resolution together), and Vision Transformers (ViT-B/32, ViT-B/16, ViT-L/14),
-i.e. [dosovitskiy2021vit](../02-computer-vision/dosovitskiy2021vit.md) as-is. ViT-L/14 was additionally fine-tuned for one
+i.e. [An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale](../02-computer-vision/dosovitskiy2021vit.md) as-is. ViT-L/14 was additionally fine-tuned for one
 epoch at 336px, and that `ViT-L/14@336px` model produces the headline numbers.
 
 **Text encoder.** A 12-layer, 512-wide, 8-head causal Transformer, about 63M
-parameters — [vaswani2017attention](../03-foundation-models/vaswani2017attention.md)'s decoder stack with the cross-attention
+parameters — [Attention Is All You Need](../03-foundation-models/vaswani2017attention.md)'s decoder stack with the cross-attention
 removed. Lower-cased BPE, 49,152-token vocabulary, sequences capped at 76 tokens
 between `[SOS]` and `[EOS]`. The representation is the activation at `[EOS]` in
 the top layer, layer-normalised and linearly projected.
@@ -338,87 +306,6 @@ Not admitted, or under-weighted:
   reasonable phrasings** a safety-relevant quantity rather than an engineering
   annoyance? I have not found this measured for any medical VLM, and it is
   cheap to measure.
-
-## Interesting ideas
-
-- The deepest idea is an inversion: this is a **retrieval** system trained on a
-  retrieval loss and then reinterpreted as a classifier by writing the class
-  names as queries. The classifier is *constructed at inference from text*. That
-  decouples the label space from the weights, and it transfers to any domain
-  where paired free text exists — which is exactly what a radiology archive is.
-- Their reason for choosing the contrastive loss is pragmatic and worth
-  generalising: predicting exact caption words wastes capacity modelling
-  phrasing you do not care about. The move is "weaken the objective until it
-  asks only for the information you need". A radiology report is largely
-  boilerplate; the same argument applies with more force there.
-- The robustness-then-lost-on-adaptation result is a clean statement of a
-  general trade: fitting the target distribution buys in-distribution accuracy
-  and spends out-of-distribution robustness. If that holds for medical
-  fine-tuning it is directly a thesis-shaped question.
-- Zero-shot equalling a 4-shot probe on its own features is a cheap, portable
-  diagnostic. Running that same crossover on a medical encoder tells me how much
-  the text tower actually knows, in one afternoon.
-
-## Relation to my work
-
-This is the closest paper to a thesis I have read so far, which is why it is
-rated 5. Coming from medical imaging, the useful reading is not "CLIP works" but
-"CLIP tells me exactly which part of the medical problem is hard": the
-concept-coverage gap on specialised imagery, not the architecture.
-
-Concretely, it changes what I do next in three ways.
-
-1. **Read ConVIRT and BioViL next**, in that order, because CLIP names ConVIRT
-   as its ancestor and the medical line is therefore the main line, not a
-   derivative one. That reordering matters for how a proposal is framed.
-2. **Run the cheap experiment before committing to a direction.** Zero-shot CLIP
-   and an open medical CLIP variant on a public chest X-ray or histopathology
-   benchmark, from released weights, on one GPU. The result decides whether the
-   thesis-shaped gap is *data scale* or *domain*, and I should not write a
-   proposal that assumes one without measuring.
-3. **Stop treating the robustness claim as transferable.** If I cite it, cite it
-   as measured on ImageNet-family shift, and say so. The temptation to write
-   "CLIP-style pretraining is robust to distribution shift" in a medical
-   introduction is strong and would be a claim the source does not support.
-
-Not yet `publish: candidate` — that is a Monday-review decision (RD27), and this
-note wants a second pass on the results table first. It is the obvious first
-candidate when it comes.
-
-## Concept notes extracted
-
-- zero-shot-is-a-claim-about-labels-not-about-exposure — the distinction the
-  overlap analysis cannot address, and the one that decides how much "zero-shot"
-  should impress me.
-- adapting-to-a-target-distribution-spends-out-of-distribution-robustness —
-  CLIP's clean demonstration of a trade that should govern how I fine-tune.
-- the-contrastive-batch-is-the-loss — why batch size is an architectural
-  decision here, and what that implies when negatives are not truly negative.
-- prompt-engineering-is-uncounted-supervision — roughly five ImageNet points
-  of hand-work reported as a gain rather than as a cost.
-
-## Implementation notes
-
-Only relevant if I run the transfer experiments above, which I intend to.
-
-- Use **OpenCLIP**, not the OpenAI repo, for anything involving training or
-  fine-tuning. The original release has no training code.
-- Normalise both embeddings before the dot product, and remember the temperature
-  is *learned and exponentiated*. Reimplementations that treat it as a fixed
-  hyperparameter get systematically different results and the difference is
-  quiet.
-- The batch is a global batch. Reproducing contrastive behaviour on one GPU
-  needs gradient accumulation with cached features or a memory bank, and neither
-  is equivalent to a true 32,768 batch. Any small-batch result I get is a
-  different experiment and must be labelled as one.
-- Preprocessing is not incidental: the released models expect their own
-  normalisation constants and centre-crop resolution, and `@336px` is a
-  different model, not a resize. Medical images at 16-bit dynamic range have to
-  be windowed to 8-bit RGB before they are even admissible, and that windowing
-  choice is a hyperparameter nobody reports.
-- Zero-shot evaluation needs the prompt set recorded alongside the number.
-  A CLIP zero-shot result without its prompts is not reproducible, including by
-  me, six months later.
 
 ## Source and attribution
 

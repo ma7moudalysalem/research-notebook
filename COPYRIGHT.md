@@ -1,11 +1,15 @@
 # Copyright, licensing and attribution
 
-> **This is the authoritative map.** Where `LICENSE`, `LICENSES/CC-BY-4.0.txt`
-> and this file appear to disagree, this file is what I intend, and the
-> disagreement is a bug worth reporting.
->
-> It is informed practice, not legal advice. If you need certainty about reuse,
-> particularly of figures, ask a lawyer or the publisher.
+**This is the authoritative map.** Where `LICENSE`, `LICENSES/CC-BY-4.0.txt`
+and this file appear to disagree, this file is what I intend, and the
+disagreement is a bug worth reporting.
+
+It is informed practice, not legal advice. If you need certainty about reuse,
+particularly of figures, ask a lawyer or the publisher.
+
+*(This used to be a blockquote. The copyright checker cannot tell an author's
+own callout from a 48-word quotation, and it should not be taught to. Plain
+paragraphs say the same thing.)*
 
 ## The map
 

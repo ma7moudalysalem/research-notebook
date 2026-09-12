@@ -38,20 +38,6 @@ tags:
 
 # An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale
 
-<!-- READING PROTOCOL. Three passes, after Keshav, *How to Read a Paper*
-     (ACM SIGCOMM CCR 37(3), 2007). Pass 1 is five minutes: title, abstract,
-     headings, conclusions - enough to decide whether to continue. Pass 2 is an
-     hour: figures, tables, and the argument, skipping proofs. Pass 3 is a
-     re-implementation in your head, questioning every assumption.
-
-     Fill the sections as the passes happen. `status: read` is only legal once
-     TL;DR, Method, Results, Limitations and Questions are all genuinely
-     written (RD13) - the checker enforces it, and "TODO" does not count.
-
-     This is an HTML comment rather than a blockquote on purpose: it is
-     instruction to the author, not content. As a blockquote it counted as an
-     87-word quotation and made every single promotion refuse. -->
-
 ## TL;DR
 
 Cut an image into 16x16 patches, embed each one with a single linear layer, and
@@ -62,20 +48,6 @@ pretraining compute of the strongest CNN. The paper is usually remembered as
 "attention works for vision", but its actual argument is about data: the
 convolutional inductive bias is a data-efficiency prior that you can buy your
 way out of, if you can afford the data.
-
-## Why I am reading this
-
-This is the cross-track hinge. It is a computer-vision architecture (T02) and it
-is the paper that made vision a foundation-model problem (T03), and reading it
-under only one of those headings loses half of why it matters. Everything I will
-read in medical vision after 2021 is either a ViT, a hybrid, or an argument
-against one, and ViT is the image encoder inside CLIP, SAM and every medical
-foundation model on my queue.
-
-The narrower reason is that I keep seeing "transformers need a lot of data"
-cited loosely in medical papers that then fine-tune a ViT on four hundred scans.
-I want to know exactly what this paper does and does not establish about that,
-because I will need to make the same decision.
 
 ## Contributions
 
@@ -305,88 +277,6 @@ scaling is untested.
   has anyone established that systematically? That is a survey question I can
   answer, and the answer is load-bearing for anything I build on top of a
   pretrained ViT.
-
-## Interesting ideas
-
-- **The patch projection is a stride-16 convolution.** The architecture is "one
-  convolution, then no convolutions", which reframes the ViT-versus-CNN argument
-  from presence of inductive bias to *depth* of inductive bias. That is a more
-  tractable question and a better one.
-- **Learned 1D position embeddings beat hand-built 2D ones.** The model recovers
-  the geometry from data. For a modality where the geometry is known exactly —
-  voxel spacing, slice thickness, patient orientation, all in the DICOM header —
-  that is a free, verified prior being discarded. Injecting it properly is a
-  small, concrete, testable idea rather than a vague one.
-- **The overfitting signature is a cheap diagnostic.** Larger model doing worse
-  at small pretraining scale says "the prior is too weak for this much data",
-  not "the model is too small". If I see that in my own runs I should read it
-  that way, and it costs nothing to check.
-- **The masked-patch footnote, four points behind supervised**, is a reminder
-  that the throwaway ablation is sometimes the whole next paper. Worth a habit:
-  when reading, ask which minor experiment would be a headline if it were three
-  points better.
-
-## Relation to my work
-
-Read this against ronneberger2015unet and the pair states the tension I
-should build a thesis question out of. U-Net says a strong architectural prior
-lets you learn from thirty images. ViT says the prior is a data-efficiency
-crutch you can discard given three hundred million. Medical imaging sits
-permanently at the U-Net end of that axis and is permanently tempted by the ViT
-end, because that is where the headline results and the funding are.
-
-**Why this note carries two tracks, and why that is earned rather than tidy.**
-T02 because it is a vision architecture and the direct successor to the CNN
-backbones I have to know to read anything current. T03 because the paper's
-argument is not really about attention at all — it is about pretraining scale,
-transfer, and what capability emerges from data volume, which is the
-foundation-models question, and because ViT is the image encoder inside the multimodal and
-promptable-segmentation models on my queue. Filing it under either alone would
-lose the half that matters more. This is the concrete case RD04 was written for:
-one file, two generated indexes, no filing lottery.
-
-What it changes about what I do next, specifically: before adopting any
-transformer-based segmentation model, I should be able to say where its
-pretraining data came from and whether the crossover argument applies at my data
-scale — and if the answer is "ImageNet-21k weights and four hundred scans", the
-architecture choice is probably not the thing doing the work. The thesis-shaped
-gap this paper leaves is how to get transformer-scale representation benefits at
-U-Net-scale data: transfer, injected geometric priors, or self-supervision on
-unlabelled clinical archives. Not locked, but that is the shape, and it is the
-first framing I have that both tracks feed.
-
-## Concept notes extracted
-
-- inductive-bias-is-a-data-efficiency-prior-not-a-correctness-constraint —
-  the paper's real thesis, separated from the "attention works for vision"
-  reading it usually gets.
-- patchification-is-a-locality-assumption-with-a-boundary-cost — the version
-  of the critique that is measurable, as a ratio of object size to patch size.
-- a-result-that-depends-on-a-private-corpus-is-not-refutable — general,
-  uncomfortable, and increasingly the normal case in this literature.
-
-None of the three is written yet; the links are forward promises. The third one
-is the one I would write first, because it applies to half my reading queue.
-
-## Implementation notes
-
-- The patch embedding is literally `nn.Conv2d(C, D, kernel_size=P, stride=P)`
-  followed by a flatten and transpose. Writing it as `unfold` plus a linear layer
-  is equivalent and slower.
-- **Position-embedding interpolation is where reimplementations break.** The
-  class token's embedding must be held out of the 2D interpolation and
-  re-concatenated afterwards, and the grid must be square unless you track `H`
-  and `W` separately. A silent bug here degrades fine-tuning accuracy by a few
-  points and looks like a bad learning rate.
-- **Pre-norm, not post-norm.** The original transformer is post-norm; ViT is
-  pre-norm, and it matters for stability at Large and Huge depth.
-- The fine-tuning head is zero-initialised, and the pretraining MLP head is
-  discarded rather than reused.
-- Sequence length is `(H/P) * (W/P) + 1`. Budget attention memory from that
-  number *before* choosing an input resolution, not after the first OOM.
-- The published recipe uses gradient clipping at global norm 1 and a long
-  warmup. At Base scale you can get away without them; at Large and above they
-  are not optional.
 
 ## Source and attribution
 

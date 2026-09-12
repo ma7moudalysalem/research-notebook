@@ -49,6 +49,7 @@ ignorePaths:
   - papers/pdf/**
   - writing/thesis/build/**
   - '**/*.svg'
+  - tools/**                     # code: identifiers, byte signatures, fixtures
 
 ignoreRegExpList:
   - '/\[\[[^\]]+\]\]/'            # wikilink targets are filenames, not prose

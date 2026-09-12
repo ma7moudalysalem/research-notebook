@@ -28,20 +28,6 @@ tags:
 
 # Attention Is All You Need
 
-<!-- READING PROTOCOL. Three passes, after Keshav, *How to Read a Paper*
-     (ACM SIGCOMM CCR 37(3), 2007). Pass 1 is five minutes: title, abstract,
-     headings, conclusions - enough to decide whether to continue. Pass 2 is an
-     hour: figures, tables, and the argument, skipping proofs. Pass 3 is a
-     re-implementation in your head, questioning every assumption.
-
-     Fill the sections as the passes happen. `status: read` is only legal once
-     TL;DR, Method, Results, Limitations and Questions are all genuinely
-     written (RD13) - the checker enforces it, and "TODO" does not count.
-
-     This is an HTML comment rather than a blockquote on purpose: it is
-     instruction to the author, not content. As a blockquote it counted as an
-     87-word quotation and made every single promotion refuse. -->
-
 ## TL;DR
 
 A sequence-to-sequence model built only from attention and feed-forward layers,
@@ -51,16 +37,6 @@ the model reaches better translation quality in a fraction of the wall-clock
 time of the recurrent systems it replaced. The lasting contribution is not the
 translation result, it is that the architecture turned out to be task-agnostic:
 almost everything I will build on descends from this block.
-
-## Why I am reading this
-
-Because it is upstream of every model I will actually use. ViT
-([dosovitskiy2021vit](../02-computer-vision/dosovitskiy2021vit.md)) is this encoder with image patches as tokens, CLIP
-([radford2021clip](../04-multimodal/radford2021clip.md)) uses it as the text tower, and every medical
-vision-language model I have seen is a re-parameterisation of one of those. I
-was absorbing the mechanism second-hand from later papers, which is how you end
-up unable to say which design choices are deliberate and which are inherited by
-default. I wanted the ablation table and the training recipe, not the folklore.
 
 ## Contributions
 
@@ -286,73 +262,6 @@ Not admitted, and more interesting:
   setting, where "the model attended to the lesion" is a statement a radiologist
   can actually disagree with? A protocol for that is a paper in itself and I
   have not found one I believe.
-
-## Interesting ideas
-
-- The architecture is defined by what it removes. Recurrence is a sequential
-  dependency that the *task* does not require, only the 1997 implementation did.
-  That is a reusable move: find the ordering constraint in your pipeline that is
-  an artefact of the implementation rather than the problem, and delete it.
-- The `1/√d_k` scaling is a two-line fix for a saturation problem, and it is the
-  difference between the model training and not. Worth auditing my own
-  architectures for constants that look cosmetic and are actually holding the
-  variance in place.
-- Their honest framing of label smoothing — it makes perplexity worse and BLEU
-  better — is a small model of how to report a trade-off instead of hiding it.
-- The parsing section is the tell. They already believed the block was
-  task-agnostic in 2017 and spent one page proving it. The foundation-model era
-  starts in that page more than in the attention equation.
-
-## Relation to my work
-
-This is a prerequisite, not a baseline. Coming from medical imaging I will never
-run a WMT experiment, and I will encounter this architecture entirely through
-its descendants. Rated 4 rather than 5 for that reason: the paper's value to the
-field is unarguable, but the parts I will *re-read* are the ablation table and
-the training recipe, and everything else I will consume through
-[dosovitskiy2021vit](../02-computer-vision/dosovitskiy2021vit.md) and [radford2021clip](../04-multimodal/radford2021clip.md).
-
-What it changes about what I do next, concretely:
-
-- Before running any transformer training of my own, read the pre-LN versus
-  post-LN and warmup literature. The single most likely way for me to waste GPU
-  weeks is to implement this paper faithfully and watch it diverge.
-- If the thesis lands anywhere near report-guided imaging, cross-attention is
-  the mechanism, and I need its cost model in my head before promising anything
-  in 3D. The `n²` in the complexity table is the number that decides whether a
-  volumetric idea is fundable on the compute I have.
-- Cite the NeurIPS 2017 version, and note that the proceedings were called NIPS
-  that year. The workspace's venue table carries a rename-year for exactly this,
-  so writing `venue: NeurIPS` here still renders `NIPS` in the generated
-  bibliography (RD06) — an entry saying "NeurIPS 2017" is wrong and an examiner
-  will notice.
-
-## Concept notes extracted
-
-- scaled-dot-product-attention-is-variance-control — why the `√d_k` divisor
-  is a training-stability fix rather than a normalisation convention.
-- warmup-is-a-consequence-of-post-ln-residual-placement — the schedule is
-  structural, not a hyperparameter, and this is the claim to test first.
-- architectural-gains-and-recipe-gains-are-routinely-confounded — the
-  missing controlled baseline here is a general failure mode of architecture
-  papers, and the note this paper most deserves.
-
-## Implementation notes
-
-- Shapes, once, so I stop re-deriving them: input `(B, n, d_model)`; per head
-  `Q, K, V` are `(B, h, n, 64)`; the attention matrix is `(B, h, n, n)`, which
-  is where the memory goes; output back to `(B, n, 512)`.
-- The causal mask is applied as `-inf` (in practice a large negative constant)
-  *before* the softmax, not by zeroing after. Zeroing after leaves the
-  normalisation wrong and the bug is nearly invisible in the loss curve.
-- Positional encodings are added to embeddings that were first multiplied by
-  `√d_model`. Skipping that scaling makes the positional signal dominate early
-  training.
-- Dropout goes on the sublayer output before the residual addition, and on the
-  embedding-plus-position sum. Both, not one.
-- If I ever implement this: build the post-LN version to match the paper, then
-  switch to pre-LN for anything I actually intend to train, and record which one
-  produced which number.
 
 ## Source and attribution
 

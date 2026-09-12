@@ -35,7 +35,7 @@ Three things, chosen because choosing them is part of the point.
 | `reading-lists/` | Staged paths through a topic, with a reason per entry and a "what I left out" section. | not yet |
 | `curricula/` | Learning tracks, including what I actually did rather than only what I planned. | not yet |
 | `datasets/` | Dataset cards: licence, access tier, and what may lawfully be published from work using them. | not yet |
-| `tools/` | The toolbox that generates the indexes and enforces the rules. | not yet |
+| [`tools/`](tools/) | The copyright checker CI runs on every pull request, and its tests. Standard library only, so anyone can read exactly what is enforced. | live |
 
 The rows marked *not yet* have no directory behind them. That is the rule rather
 than an omission: **a directory is created when it holds its first real file**,

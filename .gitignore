@@ -8,10 +8,15 @@
 # ---------------------------------------------------------------------------
 
 # ---- the copyright boundary ------------------------------------------------
-# No third-party PDF, ever. The single negation admits figures I generated
-# myself, which are the only PDFs that belong here.
-*.pdf
-!/assets/figures/**/*.pdf
+# No PDF, ever, anywhere, in any letter case.
+#
+# Two things changed after an adversarial audit of this boundary. The pattern
+# is case-insensitive because `*.pdf` on a Linux runner let `paper.PDF` walk
+# straight through. And the old negation for assets/figures/ is gone: a
+# publisher PDF renamed into that directory beside an empty .source.yml passed
+# every layer. Figures here are .svg or .png; a PDF figure is not a thing this
+# repository has, so the exemption bought nothing and cost the boundary.
+*.[pP][dD][fF]
 
 # ---- private material that must never cross ---------------------------------
 **/private/
