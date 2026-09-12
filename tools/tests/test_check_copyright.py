@@ -11,7 +11,12 @@ never fire again. The fourth pass (the `B`, `F` and `H` cases) came from an
 independent verifier's harness: the guard flagging its own source, elisions
 and word-processor apostrophes, frontmatter and HTML attributes fed to the
 quote rules, a doctest prompt read as a blockquote, and a whole paper pasted
-with `Abstract` as a bare line.
+with `Abstract` as a bare line. The fifth pass (the `R` cases) came from the
+review of pull request #9: the two ZIP signatures that are not the local-file
+header, tracked symlinks, UTF-8-clean rasters under prose names, an SVG
+`<image>` tag whose href hid behind a quoted `>`, a pull request that DELETES
+the guard rather than editing it, `check_copyright.py .` selecting nothing,
+a base-ref fetch on every run, and a hook that tested the worktree only.
 
 One rule of this file: the PDF header bytes are never written out literally
 in its first two kilobytes (`PDF_BYTES` below is built by concatenation),
@@ -1448,8 +1453,23 @@ def _clone_with_upstream(tmp_path: Path, extra: dict | None = None) -> Path:
     return work
 
 
+def _pr_branch(work: Path) -> None:
+    """Move off the base branch, once, before a pull request commits anything.
+
+    A pull request is a branch that has DIVERGED from the base; committing
+    onto `main` would leave the clone's own `main` pointing at the pull
+    request, which is not what a checkout of a pull request looks like on
+    Actions (a detached head, with the base reachable as `origin/main`) and
+    is a fixture that says nothing changed now that the checker resolves the
+    base ref locally before it reaches for the network.
+    """
+    if git(work, "rev-parse", "--abbrev-ref", "HEAD").strip() != "pr":
+        git(work, "checkout", "-q", "-b", "pr")
+
+
 def _pr(work: Path, files: dict) -> None:
     """Commit `files` onto the clone as if they were a pull request."""
+    _pr_branch(work)
     write(work, files)
     git(work, "add", "-A", "--force")
     git(work, "commit", "-q", "--no-verify", "-m", "pr")
@@ -1895,6 +1915,419 @@ def test_latex_double_backtick_quotation_is_paired(tmp_path):
     assert cc.latex_quotes("``a b'' c\n") == "“ a b”  c\n"      # lengths preserved
     assert len(cc.blank_code("say ``x'' and `code`\n")) == len("say ``x'' and `code`\n")
     assert "code" not in cc.blank_code("say ``x'' and `code`\n")
+
+
+# ---------------------------------------------------------------------------
+# fifth pass (the `R` cases), from the review of pull request #9. Eight holes,
+# each closed with a POSITIVE test that the hole now fires and a NEGATIVE test
+# that the fix did not cost a false positive: R1 the two other ZIP
+# signatures, R2 tracked symlinks, R3 UTF-8-clean rasters under prose names,
+# R4 the SVG `<image>` tag boundary, R5 a pull request that DELETES the guard,
+# R6 `check_copyright.py .`, R7 fetching the base ref on every run, R8 the
+# hook's worktree-only test for the checker.
+# ---------------------------------------------------------------------------
+
+# R1 --------------------------------------------------------------------------
+
+@pytest.mark.parametrize("name, head, how", [
+    ("docs/empty.bin", b"PK\x05\x06" + b"\x00" * 18, "empty zip"),
+    ("docs/split.bin", b"PK\x07\x08" + b"\x00" * 40, "split zip"),
+])
+def test_empty_and_split_zip_signatures_are_archives(tmp_path, name, head, how):
+    # R1. Only the local-file header PK\x03\x04 was recognised. An archive
+    # with nothing in it opens with the end-of-central-directory record and a
+    # split one with the spanning marker; both are archives.
+    root = make_repo(tmp_path, {name: head})
+    hits = only(run(root), "archive_present")
+    assert [f.path for f in hits] == [name]
+    assert how in hits[0].message
+
+
+def test_prose_about_pk_and_late_zip_bytes_are_not_archives(tmp_path):
+    # R1, negative. The signatures are tested at offset 0 and nowhere else.
+    root = make_repo(tmp_path, {
+        "docs/pk.md": "PK is the Pakistani country code, and also how a zip begins.\n",
+        "docs/pk.txt": "PK is the Pakistani country code.\n",
+        "docs/late.bin": b"not an archive: " + b"PK\x03\x04" + b"PK\x05\x06" + b"PK\x07\x08",
+    })
+    assert run(root) == []
+    assert cc.archive_kind(b"PK is the Pakistani country code") is None
+    assert cc.archive_kind(b"xPK\x03\x04") is None
+    assert cc.archive_kind(b"PK\x05\x06" + b"\x00" * 18) == "empty zip"
+    assert cc.archive_kind(b"PK\x07\x08" + b"\x00" * 18) == "split zip"
+
+
+# R2 --------------------------------------------------------------------------
+
+def stage_symlink(root: Path, path: str, target: str, worktree: str) -> None:
+    """Add `path` to the index as a symlink (mode 120000) pointing at `target`,
+    and put `worktree` on disk at that path.
+
+    Forged through the index rather than with `os.symlink`, for the same
+    reason the checker reads the mode from git: creating a real link needs a
+    privilege Windows does not hand out by default, and on such a checkout the
+    link arrives as an ordinary file whose content is the target path. The
+    working-tree bytes here are what a guard that FOLLOWED the link would
+    read; every test below asserts that nothing read them.
+    """
+    blob = root / ".symlink-target-blob"
+    blob.write_text(target, encoding="utf-8", newline="")
+    git(root, "add", "--force", ".symlink-target-blob")
+    sha = git(root, "rev-parse", ":.symlink-target-blob").strip()
+    git(root, "rm", "-q", "--cached", ".symlink-target-blob")
+    blob.unlink()
+    write(root, {path: worktree})
+    git(root, "update-index", "--add", "--cacheinfo", f"120000,{sha},{path}")
+
+
+def test_tracked_symlinks_are_findings_and_their_targets_are_never_read(tmp_path):
+    # R2. --all reads bytes from the working tree, so a link could have the
+    # guard read - and quote, into a public CI log - a file outside the
+    # checkout. The link is the finding; nothing at the far end is opened.
+    root = make_repo(tmp_path)
+    quoted = "# L\n\n> " + words(300) + "\n"
+    stage_symlink(root, "docs/inside.md", "../summaries/03-foundation-models/clean.md", quoted)
+    stage_symlink(root, "docs/outside.md", "../../../elsewhere/paper.md", quoted)
+    found = run(root)
+    assert {f.path for f in only(found, "symlink_present")} == {"docs/inside.md",
+                                                                "docs/outside.md"}
+    assert "mode 120000" in only(found, "symlink_present")[0].message
+    # Read, those bytes are a 300-word blockquote. No rule saw one.
+    assert "quote_over_limit" not in checks(found)
+    assert checks(found, "docs/inside.md") == {"symlink_present"}
+    assert checks(found, "docs/outside.md") == {"symlink_present"}
+    assert cc.Repo(root, False).symlinks() == {"docs/inside.md", "docs/outside.md"}
+
+
+def test_a_symlink_named_like_an_image_is_not_read_for_provenance(tmp_path):
+    # R2. The byte rules have nothing to sniff and do not try.
+    root = make_repo(tmp_path)
+    stage_symlink(root, "docs/fig.png", "../../outside/fig.png", "PNG-ish worktree bytes")
+    found = run(root)
+    assert "symlink_present" in checks(found, "docs/fig.png")
+    assert "unreadable_file" not in checks(found)
+    assert "pdf_magic_bytes" not in checks(found)
+
+
+def test_an_ordinary_file_is_not_a_symlink(tmp_path):
+    # R2, negative. The same path, the same bytes, an ordinary blob: judged as
+    # before, and no symlink finding anywhere.
+    root = make_repo(tmp_path, {"docs/inside.md": "# L\n\n> " + words(300) + "\n"})
+    found = run(root)
+    assert "symlink_present" not in checks(found)
+    assert "quote_over_limit" in checks(found, "docs/inside.md")
+    assert cc.Repo(root, False).symlinks() == set()
+
+
+# R3 --------------------------------------------------------------------------
+
+# A minimal GIF whose every byte is ASCII or NUL: signature, a 1x1 logical
+# screen descriptor (width, height, packed field, background index, pixel
+# aspect ratio), trailer. It decodes as UTF-8, so the "prose is decoded, never
+# sniffed" rule used to wave it straight through under a .txt or .md name.
+GIF_BYTES = (b"GIF89a" + (1).to_bytes(2, "little") + (1).to_bytes(2, "little")
+             + b"\x00\x00\x00" + b";")
+assert len(GIF_BYTES) == 14 and GIF_BYTES.decode("utf-8")
+
+
+@pytest.mark.parametrize("name", ["docs/anim.txt", "docs/anim.md", "notes/A.TXT",
+                                  "docs/anim.markdown", "docs/anim.rst"])
+def test_utf8_clean_gif_under_a_prose_name_needs_provenance(tmp_path, name):
+    # R3. A GIF renamed .txt survives the UTF-8 decode and was never sniffed.
+    root = make_repo(tmp_path, {name: GIF_BYTES})
+    hits = only(run(root), "image_provenance")
+    assert [f.path for f in hits] == [name]
+    assert "first bytes" in hits[0].message and "GIF" in hits[0].message
+
+
+@pytest.mark.parametrize("name", ["docs/shot.txt", "docs/shot.md"])
+def test_utf8_clean_bmp_under_a_prose_name_needs_provenance(tmp_path, name):
+    root = make_repo(tmp_path, {name: BMP_BYTES})
+    hits = only(run(root), "image_provenance")
+    assert [f.path for f in hits] == [name]
+    assert "BMP" in hits[0].message
+
+
+def test_sniffed_prose_raster_with_a_declaration_passes(tmp_path):
+    root = make_repo(tmp_path, {"docs/anim.txt": GIF_BYTES,
+                                "docs/anim.source.yml": "origin: cc-licensed\n"})
+    assert "image_provenance" not in checks(run(root))
+
+
+def test_prose_naming_an_image_format_is_not_an_image(tmp_path):
+    # R3, negative. The first line of a prose file is a sentence somebody
+    # wrote. Full format validation is what keeps these clean.
+    root = make_repo(tmp_path, {
+        "docs/gif.md": "GIF89a is the second version of the format.\n\n# Formats\n",
+        "docs/gif.txt": "GIF87a is the first version; GIF89a added transparency.\n",
+        "docs/bm25.md": "BM25 is a ranking function used in retrieval.\n\n# Ranking\n",
+        "docs/bm25.txt": "BM25 is a ranking function used in retrieval.\n",
+        "docs/png.rst": "PNG files open with a high byte and the three letters PNG.\n",
+    })
+    assert run(root) == []
+
+
+def test_strict_raster_kind_requires_whole_headers():
+    # R3. The prose sniff validates; the non-prose sniff still takes a prefix.
+    assert cc.strict_raster_kind(PNG_BYTES) == "PNG"
+    assert cc.strict_raster_kind(b"\x89PNG" + b"x" * 20) is None
+    assert cc.strict_raster_kind(JPEG_BYTES) == "JPEG"
+    assert cc.strict_raster_kind(b"\xff\xd8\xff\xdb" + b"\x00" * 20) == "JPEG"
+    assert cc.strict_raster_kind(b"\xff\xd8\xff\x01" + b"\x00" * 20) is None
+    assert cc.strict_raster_kind(GIF_BYTES) == "GIF"
+    assert cc.strict_raster_kind(b"GIF89a" + b"\x00" * 40) is None        # a 0x0 screen
+    assert cc.strict_raster_kind(b"GIF89a is the second version") is None
+    assert cc.strict_raster_kind(BMP_BYTES, 50) == "BMP"
+    assert cc.strict_raster_kind(BMP_BYTES, 51) is None
+    assert cc.strict_raster_kind(BMP_BYTES) is None
+    assert cc.raster_kind(b"\x89PNG" + b"x" * 20) == "PNG"
+    assert cc.raster_kind(b"GIF89a" + b"\x00" * 40) == "GIF"
+
+
+# R4 --------------------------------------------------------------------------
+
+GT_IN_ATTRIBUTE_SVG = ('<svg xmlns="http://www.w3.org/2000/svg">'
+                       '<image aria-label="a > b" '
+                       'href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUg==">'
+                       "</svg>\n")
+
+
+def test_svg_image_tag_with_a_gt_inside_a_quoted_attribute_is_found(tmp_path):
+    # R4. The tag pattern stopped at the first `>` of any kind, so the tag was
+    # never matched, no raster was seen, and `origin: original` with the SVG
+    # as its own editable source certified the bitmap.
+    root = make_repo(tmp_path, {"assets/figures/d.svg": GT_IN_ATTRIBUTE_SVG,
+                                "assets/figures/d.source.yml": "origin: original\n"})
+    hits = only(run(root), "svg_embeds_raster")
+    assert [f.path for f in hits] == ["assets/figures/d.svg"]
+    assert "cannot certify its own provenance" in hits[0].message
+    embedded = cc.svg_embedded_rasters(GT_IN_ATTRIBUTE_SVG)
+    assert len(embedded) == 1 and embedded[0].startswith("data:image/png;base64,")
+
+
+def test_svg_with_no_raster_stays_clean_even_with_a_gt_in_an_attribute(tmp_path):
+    # R4, negative. Tolerating quoted `>` must not invent a raster.
+    svg = ('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 10">'
+           "<title>a &gt; b</title>"
+           '<rect aria-label="a > b" x="1" y="1" width="8" height="8"/>'
+           '<image aria-label="a > b" href="inset.svg"/>'
+           '<path d="M0 0L10 10"/></svg>\n')
+    root = make_repo(tmp_path, {"assets/figures/d.svg": svg,
+                                "assets/figures/d.source.yml": "origin: original\n"})
+    assert run(root) == []
+    assert cc.svg_embedded_rasters(svg) == []
+    assert cc.svg_embedded_rasters(SVG_SHAPES) == []
+
+
+# R5 --------------------------------------------------------------------------
+
+def _delete_in_pr(work: Path, *paths: str) -> None:
+    _pr_branch(work)
+    for path in paths:
+        git(work, "rm", "-q", path)
+    git(work, "commit", "-q", "--no-verify", "-m", "pr")
+
+
+def test_deleting_the_checker_alone_is_a_finding(tmp_path, monkeypatch):
+    # R5. A deletion changes guard paths only, so the "guard and content do
+    # not travel together" rule passed it and the merge left no guard.
+    work = _clone_with_upstream(tmp_path)
+    _delete_in_pr(work, "tools/check_copyright.py")
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+    hits = only(run(work), "guard_self_edit")
+    assert len(hits) == 1 and hits[0].path == "tools/check_copyright.py"
+    assert "does not contain tools/check_copyright.py" in hits[0].message
+    assert "may not remove it" in hits[0].message
+
+
+def test_deleting_the_hook_alone_is_a_finding(tmp_path, monkeypatch):
+    work = _clone_with_upstream(tmp_path)
+    _delete_in_pr(work, ".githooks/pre-commit")
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+    hits = only(run(work), "guard_self_edit")
+    assert len(hits) == 1 and hits[0].path == ".githooks/pre-commit"
+    assert "does not contain .githooks/pre-commit" in hits[0].message
+
+
+def test_deleting_the_tests_alone_is_a_finding(tmp_path, monkeypatch):
+    work = _clone_with_upstream(tmp_path)
+    _delete_in_pr(work, "tools/tests/test_check_copyright.py")
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+    hits = only(run(work), "guard_self_edit")
+    assert len(hits) == 1 and hits[0].path == "tools/tests/test_check_copyright.py"
+
+
+def test_modifying_the_checker_alone_still_passes(tmp_path, monkeypatch):
+    # R5, negative. Guard-only MODIFICATIONS must keep merging; without them
+    # no fix to the guard could ever land, including this one.
+    work = _clone_with_upstream(tmp_path)
+    _pr(work, {"tools/check_copyright.py": "# changed\n"})
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+    assert "guard_self_edit" not in checks(run(work))
+
+
+def test_the_normal_tree_passes_the_guard_presence_rule(tmp_path, monkeypatch):
+    # R5, negative. A content-only pull request on a tree that still has its
+    # guard is clean, and the required set is exactly these three paths.
+    work = _clone_with_upstream(tmp_path)
+    _pr(work, {"docs/new.md": "# New\n\nProse.\n"})
+    monkeypatch.setenv("GITHUB_BASE_REF", "main")
+    assert "guard_self_edit" not in checks(run(work))
+    assert cc.REQUIRED_GUARD_PATHS == ("tools/check_copyright.py",
+                                       "tools/tests/test_check_copyright.py",
+                                       ".githooks/pre-commit")
+    assert all(cc.is_guard(p) for p in cc.REQUIRED_GUARD_PATHS)
+
+
+# R6 --------------------------------------------------------------------------
+
+def test_repository_root_as_a_path_argument_scans_the_whole_tree(tmp_path, monkeypatch):
+    # R6. `.` resolved to the prefix "./", which matches no git path, so the
+    # run selected nothing and exited 0 while looking like a full scan.
+    root = make_repo(tmp_path, {"paper.PDF": PDF_BYTES,
+                                "docs/x.md": f'# D\n\n"{words(50)}"\n'})
+    monkeypatch.chdir(root)
+    everything = {"no_third_party_pdf", "pdf_magic_bytes", "quote_over_limit"}
+    assert checks(run(root, "paths", ["."])) == everything
+    assert checks(run(root, "paths", [str(root)])) == everything
+    assert run(root, "paths", ["."]) == run(root, "all")
+    assert run(root, "paths", [str(root)]) == run(root, "all")
+
+
+def test_a_subdirectory_path_argument_still_selects_only_its_own(tmp_path, monkeypatch):
+    # R6, negative. Widening the root must not widen a subdirectory.
+    root = make_repo(tmp_path, {"paper.PDF": PDF_BYTES,
+                                "docs/x.md": f'# D\n\n"{words(50)}"\n'})
+    monkeypatch.chdir(root)
+    found = run(root, "paths", ["docs"])
+    assert [f.path for f in found] == ["docs/x.md"]
+    assert checks(found) == {"quote_over_limit"}
+
+
+def test_cli_dot_scans_the_whole_tree(tmp_path):
+    root = make_repo(tmp_path, {"paper.PDF": PDF_BYTES})
+    proc = cli(root, ".")
+    assert proc.returncode == 1
+    assert "paper.PDF: [no_third_party_pdf]" in proc.stdout
+    clean = make_repo(tmp_path / "clean")
+    proc = cli(clean, ".")
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    assert "no findings (paths)" in proc.stdout
+
+
+# R7 --------------------------------------------------------------------------
+
+def test_base_ref_resolved_locally_is_never_fetched(tmp_path, monkeypatch):
+    # R7. The workflow checks the tree out with fetch-depth 0, so the base
+    # commit is already there and `origin/<ref>` resolves. Fetching anyway
+    # turned a restricted runner or one dropped packet into a blocking
+    # finding on a valid pull request.
+    work = _clone_with_upstream(tmp_path)
+    # What such a checkout looks like: origin/release exists, release does not.
+    git(work, "update-ref", "refs/remotes/origin/release", "HEAD")
+    _pr(work, {"docs/new.md": "# New\n\nProse.\n"})
+    monkeypatch.setenv("GITHUB_BASE_REF", "release")
+
+    calls: list[tuple] = []
+    real_git = cc.Repo.git
+
+    def spy(self, *args, **kwargs):
+        calls.append(args)
+        return real_git(self, *args, **kwargs)
+
+    monkeypatch.setattr(cc.Repo, "git", spy)
+    found = run(work)
+    assert "workflow_self_edit" not in checks(found)
+    assert "guard_self_edit" not in checks(found)
+    assert not [a for a in calls if a and a[0] == "fetch"]
+    assert ("rev-parse", "--verify", "--quiet", "release^{commit}") in calls
+    assert ("rev-parse", "--verify", "--quiet", "origin/release^{commit}") in calls
+    assert [a for a in calls if a and a[0] == "diff" and "--no-renames" in a]
+    assert cc.base_candidates("main") == ("main", "origin/main", "refs/remotes/origin/main")
+
+
+def test_unresolvable_base_ref_still_blocks_and_says_what_to_run(tmp_path, monkeypatch):
+    # R7, the other half. Failing open is the hole the rule exists to close,
+    # so when nothing resolves and the fetch fails too, the finding stands.
+    work = _clone_with_upstream(tmp_path)
+    monkeypatch.setenv("GITHUB_BASE_REF", "no-such-branch")
+    found = run(work)
+    for check in ("workflow_self_edit", "guard_self_edit"):
+        hits = only(found, check)
+        assert hits, check
+        message = hits[0].message
+        assert "could not be resolved locally" in message
+        assert "origin/no-such-branch, refs/remotes/origin/no-such-branch" in message
+        assert "failing open here is the hole this rule exists to close" in message
+        assert "git fetch origin no-such-branch" in message
+        assert "fetch-depth: 0" in message
+        assert message.endswith("; the guard fails closed.")
+
+
+# R8 --------------------------------------------------------------------------
+
+HOOK = TOOLS.parent / ".githooks" / "pre-commit"
+SH = shutil.which("sh")
+needs_sh = pytest.mark.skipif(SH is None, reason="no POSIX sh on PATH")
+
+
+def run_hook(root: Path, path_env: str | None = None) -> subprocess.CompletedProcess:
+    """The real hook script, run by sh, in a throwaway repository."""
+    env = dict(os.environ)
+    if path_env is not None:
+        env["PATH"] = path_env
+    return subprocess.run([SH, HOOK.as_posix()], cwd=str(root), capture_output=True,
+                          text=True, encoding="utf-8", errors="replace", env=env)
+
+
+@needs_sh
+def test_hook_blocks_when_the_checker_is_missing_from_the_worktree(tmp_path):
+    # R8, one way round: tracked, but not on disk. The hook cannot run it.
+    root = make_repo(tmp_path, {"tools/check_copyright.py": "import sys\nsys.exit(0)\n"})
+    (root / "tools" / "check_copyright.py").unlink()
+    proc = run_hook(root)
+    assert proc.returncode == 1
+    assert "COMMIT BLOCKED" in proc.stderr
+    assert "WORKING TREE" in proc.stderr
+    assert "NOT IN THE INDEX" not in proc.stderr
+
+
+@needs_sh
+def test_hook_blocks_when_the_checker_is_missing_from_the_index(tmp_path):
+    # R8, the other way round: on disk, but `git rm --cached` took it out of
+    # the index. The old hook found the file, ran it happily, and let through
+    # the very commit that removed the guard from the repository.
+    root = make_repo(tmp_path, {"tools/check_copyright.py": "import sys\nsys.exit(0)\n"})
+    git(root, "rm", "-q", "--cached", "tools/check_copyright.py")
+    proc = run_hook(root)
+    assert proc.returncode == 1
+    assert "COMMIT BLOCKED" in proc.stderr
+    assert "NOT IN THE INDEX" in proc.stderr
+    assert "WORKING TREE" not in proc.stderr
+    assert (root / "tools" / "check_copyright.py").is_file()
+
+
+@needs_sh
+def test_hook_gets_past_both_presence_tests_when_the_checker_is_there(tmp_path):
+    # R8, negative. With the file in both places the hook proceeds to the
+    # interpreter search - proved here by scrubbing python off PATH and
+    # getting that failure rather than either presence failure.
+    root = make_repo(tmp_path, {"tools/check_copyright.py": "import sys\nsys.exit(0)\n"})
+    # A PATH holding git and nothing else. Pointing at git's own directory is
+    # not that: on a Linux runner git lives in /usr/bin beside python3, so the
+    # hook found an interpreter, ran the stub checker and exited 0 - this test
+    # failed in CI while passing on Windows, where git's directory holds no
+    # python.
+    only_git = tmp_path / "only-git"
+    only_git.mkdir()
+    shim = only_git / "git"
+    shim.write_text('#!/bin/sh\nexec "%s" "$@"\n' % Path(shutil.which("git")).as_posix(),
+                    encoding="utf-8", newline="\n")
+    shim.chmod(0o755)
+    proc = run_hook(root, path_env=str(only_git))
+    assert proc.returncode == 1
+    assert "no python interpreter on PATH" in proc.stderr
+    assert "WORKING TREE" not in proc.stderr and "NOT IN THE INDEX" not in proc.stderr
 
 
 # ---------------------------------------------------------------------------

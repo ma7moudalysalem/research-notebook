@@ -21,13 +21,26 @@ set -e
 
 fail() { printf '\n  COMMIT BLOCKED: %s\n\n' "$1" >&2; exit 1; }
 
+# The guard must be present in BOTH places, and the two are not the same
+# question. The working-tree copy is the one this hook is about to run; the
+# index copy is the one the commit would ship. `git rm --cached` on the checker
+# leaves the file on disk, so a working-tree test alone runs it happily
+# and lets through the very commit that removes the guard from the repository.
+# LOUD, not silent, either way: the old hook tested for the file and quietly
+# skipped when it was absent, which is how a repository ships with a guard
+# that asserts nothing while every document says it is guarded.
 if [ ! -f tools/check_copyright.py ]; then
-  # LOUD, not silent. The old hook tested for this file and quietly skipped
-  # when it was absent, which is how a repository ships with a guard that
-  # asserts nothing while every document says it is guarded.
-  fail "tools/check_copyright.py is missing, so this hook cannot check anything.
-  Restore it from main before committing. A guard that is not there is not a
-  guard that passed."
+  fail "tools/check_copyright.py is missing from the WORKING TREE, so this hook cannot
+  check anything. Restore it from main before committing. A guard that is not
+  there is not a guard that passed."
+fi
+
+if ! git ls-files --error-unmatch tools/check_copyright.py >/dev/null 2>&1; then
+  fail "tools/check_copyright.py is on disk but NOT IN THE INDEX, so this commit would
+  remove the guard from the repository while the hook ran happily against the
+  copy left in your working tree. Run 'git add tools/check_copyright.py'. If you
+  really mean to delete the guard, it is a pull request of its own, reviewed as
+  such - CI refuses a tree that does not contain it."
 fi
 
 PY=python3

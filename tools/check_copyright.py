@@ -25,9 +25,12 @@ Accidents do not use homoglyphs, CJK brackets, `<foreignObject>`, or the PDF
 header at byte 1025. So:
 
 * Byte-level and structural checks stay AIRTIGHT. A PDF is a PDF whatever it
-  is called; an archive is an archive; a bitmap under a `.txt` name is a
-  bitmap (it fails UTF-8 decoding and is refused as unreadable, which is the
-  same refusal by another name).
+  is called; an archive is an archive, whichever of the three ZIP signatures
+  it opens with; a bitmap under a `.txt` name is a bitmap (a PNG or a JPEG
+  fails UTF-8 decoding and is refused as unreadable, which is the same
+  refusal by another name, and a GIF or a BMP - which are ASCII-and-NUL and
+  do decode - is sniffed under full format validation and refused for want of
+  provenance). A tracked symlink is refused outright and never followed.
 * Prose rules are a TRIPWIRE for accidents. They are tuned for ZERO false
   positives on legitimate scholarly prose FIRST - a reading list of thirty
   quoted titles, a 12" display, the '90s, a bibliography of `Zhang's` and
@@ -64,6 +67,14 @@ adversary is an accident, and none of these happens by accident:
   JXL/JP2 bytes under a non-image name** are not sniffed; a renamed PDF keeps
   its header at the top, and this repository has no reason to hold those
   formats under any name.
+* **TIFF and WebP bytes under a PROSE name** are not sniffed. Prose is
+  sniffed only under full format validation (PNG's whole signature, JPEG's
+  SOI plus an APPn or DQT marker, a GIF signature plus a plausible logical
+  screen descriptor, BMP's self-describing size field), and neither TIFF nor
+  WebP has a header that can be validated without guessing. Under a
+  non-prose name both are caught by the loose sniff as before, and a real
+  file of either kind carries compressed pixel data that does not survive the
+  UTF-8 decode every prose file gets.
 * **`<foreignObject><img>` inside an SVG** and **an empty editable source
   satisfying provenance** are not caught; the provenance rule verifies that
   the owner made a declaration, not that the declaration is true.
@@ -89,6 +100,13 @@ Design rules, in the order they matter:
 * **Fail closed.** A file that cannot be read, decoded or parsed is a finding,
   never a skip. The audit that prompted this rewrite found four holes, and
   every one of them was a check that silently did nothing on unexpected input.
+* **Nothing outside the repository is read.** `--all` reads bytes from the
+  working tree, so a tracked symlink would let a pull request point the guard
+  at a file that is not in the checkout and have it read, judge and quote
+  that file in a public CI log. A tracked symlink is therefore a finding of
+  its own (`symlink_present`) and its target is never opened. The mode comes
+  from git, not from the filesystem, so a Windows checkout - where the link
+  is stored as an ordinary file - is judged the same as a POSIX one.
 * **The name is not the file.** Extensions are matched case-insensitively
   (`paper.PDF` walked past the old check) and the PDF, archive and image rules
   also read magic bytes, because a publisher PDF committed as `docs/img/scan`
@@ -116,17 +134,22 @@ Design rules, in the order they matter:
 * **Nothing private is imported or read.** Constants that originate in private
   config are declared below with a comment naming their source, so drift shows
   up in a diff instead of silently.
-* **The judge is not editable by the judged.** The workflow runs main's copy of
-  this file against the pull request's tree; that is the real defence. The
-  self-edit rules here are belt and braces on top of it, never the only thing
-  standing.
+* **The judge is not editable by the judged, and not deletable either.** The
+  workflow runs main's copy of this file against the pull request's tree;
+  that is the real defence. The self-edit rules here are belt and braces on
+  top of it, never the only thing standing - and because main's copy is what
+  runs, they can also refuse a tree that has dropped the checker, its tests
+  or the pre-commit hook (REQUIRED_GUARD_PATHS). Changing the guard is
+  allowed; removing it is not.
 
 Usage:
     python tools/check_copyright.py [--all | --staged | PATH...]
 
     --all      every tracked file, read from the working tree (CI; the default)
     --staged   files in the git index, read FROM THE INDEX (the pre-commit hook)
-    PATH...    specific files or directories, read from the working tree
+    PATH...    specific files or directories, read from the working tree. A
+               path that resolves to the repository root - `.`, or the root's
+               own absolute path - means the whole tracked tree, as --all does.
 
 Exit 1 on any finding. Findings are printed as GitHub annotations when
 GITHUB_ACTIONS is set and as plain `path:line: [check] message` lines otherwise.
@@ -227,8 +250,17 @@ PDF_MAGIC = b"%PDF-"
 
 ARCHIVE_EXT = (".zip", ".tar", ".gz", ".tgz", ".bz2", ".xz", ".7z", ".rar", ".jar", ".war")
 # (magic, offset, name). `ustar` sits at byte 257 of a POSIX tar header.
+# A ZIP announces itself with one of three signatures at byte 0, not one: a
+# local file header (`PK\x03\x04`) in the ordinary case, the end-of-central-
+# directory record (`PK\x05\x06`) when the archive is empty, and the spanning
+# marker (`PK\x07\x08`) when it is split. All three are archives and all three
+# are refused. They are tested at offset 0 ONLY, so a page that says "PK is
+# the Pakistani country code" in its first line, or carries those bytes
+# somewhere in the middle, is not an archive.
 ARCHIVE_MAGIC = (
     (b"PK\x03\x04", 0, "zip"),
+    (b"PK\x05\x06", 0, "empty zip"),
+    (b"PK\x07\x08", 0, "split zip"),
     (b"\x1f\x8b", 0, "gzip"),
     (b"7z\xbc\xaf\x27\x1c", 0, "7z"),
     (b"Rar!", 0, "rar"),
@@ -254,6 +286,15 @@ GUARD_FILES = ("tools/check_copyright.py", "tools/tests/test_check_copyright.py"
 GUARD_DIRS = (".githooks/",)
 # Content is anything outside all three of these.
 NON_CONTENT_DIRS = (".github/", "tools/", ".githooks/")
+# The paths a tree under review must CONTAIN. `is_guard` above decides whether
+# a changed path belongs to the guard; this decides whether the guard is still
+# there at all. A pull request that deletes the checker, its tests or the hook
+# changes only guard paths, so the "guard and content do not travel together"
+# rule passes it, and after the merge the repository has no guard. Absence is
+# therefore a finding of its own. `.githooks/` is a directory to `is_guard`,
+# but the hook that runs the checker is a named file here: an empty
+# `.githooks/` is not a hook.
+REQUIRED_GUARD_PATHS = GUARD_FILES + (".githooks/pre-commit",)
 
 # A fence whose info string names one of these languages is code and is
 # blanked. A fence with ANY other info string - empty, `text`, `abstract`, a
@@ -372,6 +413,7 @@ class Repo:
         self.root = root
         self.from_index = from_index
         self._blobs: Optional[dict[str, str]] = None   # path -> blob sha (index only)
+        self._modes: Optional[dict[str, str]] = None   # path -> index mode, e.g. "120000"
 
     # -- git ---------------------------------------------------------------
 
@@ -416,18 +458,37 @@ class Repo:
                                            "--diff-filter=D", base))
         return changed, deleted
 
+    def _read_index(self) -> None:
+        blobs: dict[str, str] = {}
+        modes: dict[str, str] = {}
+        for entry in self.git("ls-files", "-s", "-z").split(b"\0"):
+            if not entry:
+                continue
+            meta, _tab, path = entry.partition(b"\t")
+            parts = meta.split()
+            if len(parts) >= 2:
+                rel = path.decode("utf-8", "replace")
+                modes[rel] = parts[0].decode()
+                blobs[rel] = parts[1].decode()
+        self._blobs, self._modes = blobs, modes
+
     def _index_blobs(self) -> dict[str, str]:
         if self._blobs is None:
-            out: dict[str, str] = {}
-            for entry in self.git("ls-files", "-s", "-z").split(b"\0"):
-                if not entry:
-                    continue
-                meta, _tab, path = entry.partition(b"\t")
-                parts = meta.split()
-                if len(parts) >= 2:
-                    out[path.decode("utf-8", "replace")] = parts[1].decode()
-            self._blobs = out
-        return self._blobs
+            self._read_index()
+        return self._blobs or {}
+
+    def symlinks(self) -> set[str]:
+        """Every tracked path git records with mode 120000, i.e. every symlink.
+
+        Read from the INDEX, never from the filesystem. A Windows checkout
+        without the privilege to create links stores a symlink as an ordinary
+        small file whose content is the target path, so `Path.is_symlink()`
+        answers "no" there and the guard would pass exactly the tree the rule
+        exists to refuse. Git's mode is the same on every platform.
+        """
+        if self._modes is None:
+            self._read_index()
+        return {rel for rel, mode in (self._modes or {}).items() if mode == "120000"}
 
     # -- bytes ---------------------------------------------------------------
 
@@ -463,6 +524,7 @@ class Context:
     targets: list[str]              # the files being judged
     universe: set[str]              # every tracked path, for sibling lookups
     deleted: set[str] = field(default_factory=set)   # staged deletions
+    symlinks: set[str] = field(default_factory=set)  # tracked paths with mode 120000
     findings: list[Finding] = field(default_factory=list)
     _texts: dict[str, Optional[str]] = field(default_factory=dict)
     _scans: dict[str, str] = field(default_factory=dict)
@@ -483,7 +545,14 @@ class Context:
                      "The guard fails closed; fix or remove the file.")
 
     def head(self, rel: str) -> Optional[bytes]:
-        """The first HEAD_BYTES of a file, read once, or None (already reported)."""
+        """The first HEAD_BYTES of a file, read once, or None (already reported).
+
+        A tracked symlink is never opened: `symlink_present` has already
+        reported it, and following it would read - and quote, in a public CI
+        log - a file that is not in the repository at all.
+        """
+        if rel in self.symlinks:
+            return None
         if rel in self._heads:
             return self._heads[rel]
         try:
@@ -495,7 +564,12 @@ class Context:
         return head
 
     def text(self, rel: str) -> Optional[str]:
-        """UTF-8 text with line endings normalised, or None (already reported)."""
+        """UTF-8 text with line endings normalised, or None (already reported).
+
+        A tracked symlink is never opened; see `head`.
+        """
+        if rel in self.symlinks:
+            return None
         if rel in self._texts:
             return self._texts[rel]
         try:
@@ -606,8 +680,55 @@ def raster_kind(head: bytes, size: Optional[int] = None) -> Optional[str]:
             return name
     if head[:4] == b"RIFF" and head[8:12] == b"WEBP":
         return "WebP"
-    if (head[:2] == b"BM" and len(head) >= 10 and size is not None
-            and int.from_bytes(head[2:6], "little") == size and head[6:10] == b"\x00" * 4):
+    if bmp_header(head, size):
+        return "BMP"
+    return None
+
+
+def bmp_header(head: bytes, size: Optional[int]) -> bool:
+    """`BM`, a four-byte little-endian size field at offset 2 that states the
+    file's own size, and four zero reserved bytes. Without the size there is
+    no claim: `BM` alone begins "BM25 is a ranking function"."""
+    return (head[:2] == b"BM" and len(head) >= 10 and size is not None
+            and int.from_bytes(head[2:6], "little") == size and head[6:10] == b"\x00" * 4)
+
+
+# A GIF's logical screen descriptor follows the six-byte signature: width and
+# height as two-byte little-endian integers, a packed field, a background
+# colour index, and a pixel aspect ratio. Encoders write 0 for the aspect
+# ratio and neither dimension of a real image is zero, which is what separates
+# a GIF from a sentence: "GIF89a is the second version of the format" has `e`
+# where the aspect ratio belongs.
+_GIF_SIGNATURES = (b"GIF87a", b"GIF89a")
+PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
+
+
+def strict_raster_kind(head: bytes, size: Optional[int] = None) -> Optional[str]:
+    """The raster format the first bytes announce under FULL validation, or None.
+
+    `raster_kind` above is the fail-closed sniff for files that are not prose:
+    a prefix is enough there, because a `.dat` file has no business starting
+    with `GIF8` whatever follows. This one is for PROSE, where the first line
+    is a sentence a person wrote, and a prefix test would refuse a note about
+    image formats. Every format is therefore validated as far as its header
+    goes: the whole eight-byte PNG signature, a JPEG start-of-image followed
+    by an APPn or a quantisation-table marker, a GIF signature followed by a
+    plausible logical screen descriptor, and the BMP size field the loose
+    sniff already required. TIFF and WebP are deliberately absent: neither has
+    a header this rule could validate without guessing, and a documented limit
+    beats a checker that fires on a bibliography.
+    """
+    if head.startswith(PNG_SIGNATURE):
+        return "PNG"
+    if (len(head) >= 4 and head[:2] == b"\xff\xd8" and head[2] == 0xff
+            and (0xe0 <= head[3] <= 0xef or head[3] == 0xdb)):
+        return "JPEG"
+    if (head[:6] in _GIF_SIGNATURES and len(head) >= 13
+            and int.from_bytes(head[6:8], "little")
+            and int.from_bytes(head[8:10], "little")
+            and head[12] == 0):
+        return "GIF"
+    if bmp_header(head, size):
         return "BMP"
     return None
 
@@ -1341,6 +1462,9 @@ def parse_flat_yaml(text: str) -> dict[str, str]:
 
 def read_decl(ctx: Context, decl: str) -> tuple[Optional[dict[str, str]], Optional[str]]:
     """(parsed declaration, None) or (None, why it declares nothing)."""
+    if decl in ctx.symlinks:
+        return None, (f"{decl} is a symlink, which the guard never follows; a declaration "
+                      "that lives outside the repository declares nothing")
     try:
         raw = ctx.repo.read_bytes(decl)
         data = parse_flat_yaml(raw.decode("utf-8-sig"))
@@ -1425,10 +1549,39 @@ def check_archive_present(ctx: Context) -> None:
                 "out which. Commit the files themselves, where each one can be judged.")
 
 
+def check_symlink_present(ctx: Context) -> None:
+    """No tracked symlink, anywhere. The link itself is the finding and its
+    target is never read.
+
+    `--all` reads bytes from the working tree, so a pull request that adds
+    `docs/x.md -> ../../somewhere/else` would have the guard open, judge and
+    QUOTE - into a public CI log - a file that is not in the repository. It
+    would also let a link into the checkout's own `.git/` pass as prose. This
+    repository has no reason to hold a symlink, so failing closed beats
+    deciding which targets are safe to follow, and refusing is cheaper than
+    resolving a path safely on three operating systems.
+
+    The mode comes from git (`ls-files -s`, mode 120000), not from the
+    filesystem: a Windows checkout without the privilege to create links
+    stores the link as an ordinary file whose content is the target path, and
+    a filesystem test would answer "no" on exactly the tree under review.
+    """
+    for rel in ctx.targets:
+        if rel not in ctx.symlinks:
+            continue
+        ctx.add("symlink_present", rel,
+                "git records this path as a symlink (mode 120000). A symlink is not a file "
+                "this repository can judge: its target may sit outside the checkout entirely, "
+                "and the guard does not follow it - nothing at the other end is read. Commit "
+                "the file itself, or remove the link.")
+
+
 def check_size_ceiling(ctx: Context) -> None:
     """No tracked file over SIZE_CEILING_BYTES. Nothing that belongs here is big;
     something that big is a scan, a dataset sample, or a checkpoint."""
     for rel in ctx.targets:
+        if rel in ctx.symlinks:
+            continue          # never stat through a link; see check_symlink_present
         try:
             size = ctx.repo.size(rel)
         except (OSError, RepoError) as exc:
@@ -1479,11 +1632,11 @@ def check_image_provenance(ctx: Context) -> None:
             continue
         if rel not in ctx.universe:
             continue          # a stray path argument; nothing tracked to judge
+        if rel in ctx.symlinks:
+            continue          # `symlink_present` has it; nothing at the far end is read
         in_figures = rel.lower().startswith(FIGURE_DIR) and not is_prose(rel)
         sniffed: Optional[str] = None
         if not (has_ext(rel, IMAGE_EXT) or in_figures):
-            if is_prose(rel):
-                continue
             head = ctx.head(rel)
             if head is None:
                 continue
@@ -1491,7 +1644,23 @@ def check_image_provenance(ctx: Context) -> None:
                 size: Optional[int] = ctx.repo.size(rel)
             except (OSError, RepoError):
                 size = None
-            sniffed = raster_kind(head, size)
+            if is_prose(rel):
+                # A prose file that does not decode is already refused as
+                # unreadable, and that refusal covers every raster whose
+                # bytes are not valid UTF-8 - a PNG or a JPEG under a .txt
+                # name never reaches this line. What DOES reach it is the
+                # UTF-8-clean case: a GIF or a BMP is ASCII-and-NUL from its
+                # first byte, decodes cleanly, and renamed `notes.txt` walked
+                # past this rule entirely. It is sniffed here under FULL
+                # format validation, because the first line of a prose file
+                # is a sentence somebody wrote: "GIF89a is the second version
+                # of the format" and "BM25 is a ranking function" are notes,
+                # not images, and must stay clean.
+                if ctx.text(rel) is None:
+                    continue
+                sniffed = strict_raster_kind(head, size)
+            else:
+                sniffed = raster_kind(head, size)
             if sniffed is None:
                 continue
 
@@ -1544,7 +1713,13 @@ def check_image_provenance(ctx: Context) -> None:
                         "without the thing you drew it with (COPYRIGHT.md, \"Figures\").")
 
 
-_SVG_IMAGE_TAG = re.compile(r"<(?:[A-Za-z_][\w.\-]*:)?(?:image|feImage)\b([^>]*)>", re.I | re.S)
+# The same quoted-attribute-tolerant tag parsing the HTML scanner uses
+# (`_ATTRS`), for the same reason: a quoted attribute value may contain `>`,
+# so a tag runs to the first `>` OUTSIDE quotes. Stopping at the first `>` of
+# any kind made `<image aria-label="a > b" href="data:image/png;base64,...">`
+# invisible, and an `origin: original` SVG then certified its own bitmap.
+_SVG_IMAGE_TAG = re.compile(
+    r"<(?:[A-Za-z_][\w.\-]*:)?(?:image|feImage)\b(" + _ATTRS + r")>", re.I | re.S)
 _SVG_HREF = re.compile(r"\bhref\s*=\s*(?:([\"'])(.*?)\1|([^\s\"'>]+))", re.I | re.S)
 
 
@@ -1911,26 +2086,72 @@ def check_notebook_outputs(ctx: Context) -> None:
                     "image is a figure with no provenance (COPYRIGHT.md, \"Figures\").")
 
 
+def base_candidates(base: str) -> tuple[str, ...]:
+    """The local names a pull request's base ref can already be sitting under,
+    in the order they are tried. `.github/workflows/copyright.yml` checks the
+    tree out with `fetch-depth: 0`, so on Actions the base commit is in the
+    clone before this file runs and `origin/<ref>` resolves at once."""
+    return (base, f"origin/{base}", f"refs/remotes/origin/{base}")
+
+
+def resolve_base(ctx: Context, base: str) -> Optional[str]:
+    """The commit the base ref names, resolved LOCALLY, or None.
+
+    No network. `rev-parse --verify --quiet <ref>^{commit}` answers from the
+    objects already in the clone and says nothing on failure.
+    """
+    for ref in base_candidates(base):
+        out = ctx.repo.git("rev-parse", "--verify", "--quiet", f"{ref}^{{commit}}",
+                           check=False).decode("utf-8", "replace").strip()
+        if out:
+            return out
+    return None
+
+
 def changed_against_base(ctx: Context) -> tuple[Optional[set[str]], Optional[str]]:
     """(paths that differ from the pull request's base branch, None), or
-    (None, why that could not be determined). Fetched and diffed once; both
+    (None, why that could not be determined). Resolved and diffed once; both
     self-edit rules read the same answer. Renames are listed as a deletion and
-    an addition, so a guard file moved aside still counts as changed."""
+    an addition, so a guard file moved aside still counts as changed.
+
+    The base ref is resolved LOCALLY first - the ref itself, then
+    `origin/<ref>`, then `refs/remotes/origin/<ref>` - and the network is
+    touched only when none of the three resolve. The workflow checks the tree
+    out with `fetch-depth: 0`, so in CI the base commit is already present and
+    no fetch happens at all; fetching unconditionally turned a restricted
+    runner or one dropped packet into a blocking finding on a valid pull
+    request. When nothing resolves and the fetch fails too, the finding stands
+    and blocks: failing open is the hole this rule exists to close.
+    """
     if ctx._base_diff is not None:
         return ctx._base_diff
     base = os.environ.get("GITHUB_BASE_REF", "").strip()
+    rev = resolve_base(ctx, base)
+    if rev is None:
+        try:
+            ctx.repo.git("fetch", "--depth=1", "origin", base)
+        except RepoError as exc:
+            ctx._base_diff = (None, _unresolved_base_message(base, exc))
+            return ctx._base_diff
+        rev = "FETCH_HEAD"
     try:
-        ctx.repo.git("fetch", "--depth=1", "origin", base)
-    except RepoError as exc:
-        ctx._base_diff = (None, f"could not fetch the base branch {base!r} to compare against ({exc})")
-        return ctx._base_diff
-    try:
-        out = ctx.repo.git("diff", "--name-only", "-z", "--no-renames", "FETCH_HEAD")
+        out = ctx.repo.git("diff", "--name-only", "-z", "--no-renames", rev)
     except RepoError as exc:
         ctx._base_diff = (None, f"git diff against {base} failed ({exc})")
         return ctx._base_diff
     ctx._base_diff = (set(ctx.repo._split_nul(out)), None)
     return ctx._base_diff
+
+
+def _unresolved_base_message(base: str, exc: Exception) -> str:
+    return (f"the base branch {base!r} could not be resolved locally (tried "
+            f"{', '.join(base_candidates(base))}) and fetching it failed ({exc}). This "
+            "finding blocks the pull request on purpose: failing open here is the hole "
+            "this rule exists to close, because a guard that cannot see the base branch "
+            "cannot tell a guard change from a content change and would wave both through. "
+            f"Run `git fetch origin {base}` on the runner, or check the tree out with "
+            "`fetch-depth: 0` (as .github/workflows/copyright.yml does) so the base commit "
+            "is present before the guard runs")
 
 
 def check_workflow_self_edit(ctx: Context) -> None:
@@ -1967,15 +2188,34 @@ def check_guard_self_edit(ctx: Context) -> None:
     """On a pull request, this checker, its tests and .githooks/ may not change
     in the same pull request as content - anything outside .github/, tools/
     and .githooks/. The guard and the content it judges do not travel in one
-    pull request.
+    pull request. And whatever else the pull request does, the tree under
+    review must still CONTAIN every path in REQUIRED_GUARD_PATHS.
+
+    The second half closes a hole in the first. The pairing rule fires only
+    when a guard path changes AND content changes, so a pull request that
+    merely DELETES this file - or its tests, or the pre-commit hook - touches
+    guard paths alone, passes, and leaves a repository whose documents all
+    say it is guarded and whose guard is not there. Deletion fails closed
+    here. Guard-only MODIFICATIONS stay permitted: without them no fix to the
+    guard could ever land, including the one that ships this rule.
 
     Belt and braces. The real defence is in the workflow, which runs main's
     copy of this file against the pull request's tree, so a PR that rewrites
-    this rule is judged by the version that does not contain the rewrite. This
-    rule must never be the only thing standing.
+    this rule is judged by the version that does not contain the rewrite - and
+    a PR that deletes this file is judged by main's copy, which is why the
+    absence check can see the deletion at all. This rule must never be the
+    only thing standing.
     """
     if not os.environ.get("GITHUB_BASE_REF", "").strip():
         return
+    missing = [p for p in REQUIRED_GUARD_PATHS if p not in ctx.universe]
+    if missing:
+        ctx.add("guard_self_edit", missing[0],
+                f"the tree under review does not contain {', '.join(missing)}. A pull "
+                "request may change the guard, but it may not remove it: after this merged, "
+                "the repository would carry documents that say it is guarded and no guard to "
+                f"do it. The required paths are {', '.join(REQUIRED_GUARD_PATHS)}. Restore "
+                "the missing one(s) from main.")
     changed, why = changed_against_base(ctx)
     if changed is None:
         ctx.add("guard_self_edit", GUARD_FILES[0], f"{why}; the guard fails closed.")
@@ -1996,6 +2236,7 @@ CHECKS: tuple[Callable[[Context], None], ...] = (
     check_no_third_party_pdf,
     check_pdf_magic_bytes,
     check_archive_present,
+    check_symlink_present,
     check_size_ceiling,
     check_image_provenance,
     check_svg_embeds_raster,
@@ -2049,13 +2290,22 @@ def gather(root: Path, mode: str, paths: Optional[list[str]] = None) -> list[Fin
         targets_set: set[str] = set()
         for given in paths or []:
             rel = relative_posix(root, given)
+            if rel in (".", ""):
+                # The repository root itself. `Path.relative_to` renders it as
+                # ".", which as a directory prefix is "./" - a string no git
+                # path ever starts with, so `check_copyright.py .` selected
+                # nothing and exited 0 while looking like a full run. The root
+                # means the whole tracked tree, exactly like --all.
+                targets_set.update(universe)
+                continue
             if (root / rel).is_dir():
                 targets_set.update(p for p in universe if p.startswith(rel.rstrip("/") + "/"))
             else:
                 targets_set.add(rel)
         targets = sorted(targets_set)
 
-    ctx = Context(repo=repo, targets=targets, universe=universe, deleted=deleted)
+    ctx = Context(repo=repo, targets=targets, universe=universe, deleted=deleted,
+                  symlinks=repo.symlinks())
     for check in CHECKS:
         check(ctx)
     ctx.findings.sort(key=lambda f: (f.path, f.line or 0, f.check, f.message))
